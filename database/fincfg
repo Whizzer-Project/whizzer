@@ -1,0 +1,3831 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.5
+-- Dumped by pg_dump version 12.2
+
+-- Started on 2021-11-24 10:05:08
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 11 (class 2615 OID 62486)
+-- Name: fincfg; Type: SCHEMA; Schema: -; Owner: fincfg
+--
+
+CREATE SCHEMA fincfg;
+
+
+ALTER SCHEMA fincfg OWNER TO fincfg;
+
+--
+-- TOC entry 366 (class 1255 OID 62544)
+-- Name: changequeuestatus(integer, integer); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.changequeuestatus(inqueueid integer, instatus integer) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  05.Jun.2018, DanielC - 12857
+  Created:         10.Jun.2013, DenisaN  - 7168
+  Description:     Changes the status of a specified queue
+  Parameters:      inQueueID - queue to be modified
+                   inStatus - new status of the queue                    
+  Returns:         n/a
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+
+BEGIN
+
+   update  fincfg.queues   set   holdstatus = inStatus where  id = inQueueID;
+         
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while configuring queue: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.changequeuestatus(inqueueid integer, instatus integer) OWNER TO fincfg;
+
+--
+-- TOC entry 367 (class 1255 OID 62545)
+-- Name: getactiveschemas(character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getactiveschemas(incurrenttime character varying) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN 7496
+  Description:     Gets active routing schemas  info at invoke time
+  Parameters:      inCurrentTime - current time [format:HH24:MI:SS]
+  Returns:         cursor representing schema info    
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+ v_currentTime timestamp;
+ v_cursor      refcursor;
+  
+BEGIN
+ 
+   v_currentTime := to_timestamp( inCurrentTime,'HH24:MI:SS' );
+   
+  open v_cursor for
+     select id, name, sessioncode from fincfg.routingschemas where
+        timelimitid1 in ( select id from fincfg.timelimits where ( cutoff - date_trunc( 'day', cutoff ) ) < ( v_currentTime - date_trunc( 'day', v_currentTime ) ) )
+       and 
+        timelimitid2 in ( select id from fincfg.timelimits where ( cutoff - date_trunc( 'day', cutoff ) ) > ( v_currentTime - date_trunc( 'day', v_currentTime ) ) );
+  return (v_cursor);
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving active schemas: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getactiveschemas(incurrenttime character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 368 (class 1255 OID 62546)
+-- Name: getduplicatesettings(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getduplicatesettings(OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         21.Jan.2014, DenisaN                
+  Description:     Gathers duplicate settings for every service defined.
+  Parameters:      n/a
+  Returns:         outRetCursor  cursor representing schema info    
+  Used:            FinTP/BASE/RE,Conn
+***********************************************/
+
+BEGIN
+
+  open outretcursor for
+    select name, 
+               case 
+                     when duplicatecheck = 2 then 0
+                     when duplicatecheck = 1 then 1
+                     when duplicatecheck = 0 then 0
+                      else null
+               end duplicatecheck, 
+               case 
+                    when duplicatecheck = 2 then 1
+                    when duplicatecheck = 1  then 1
+                    when duplicatecheck = 0 then 0
+                    else null
+               end duplicateservice, 
+               duplicatequeue, duplicatemap  from fincfg.servicemaps;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving duplicate settings: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getduplicatesettings(OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 369 (class 1255 OID 62547)
+-- Name: getkeywordmappings(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getkeywordmappings(OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  11.Jun.2018, DanielC 12857
+  Created:         29.May.2013, DenisaN 7496
+  Description:     Gets the routing keyword mappings
+  Parameters:      n/a
+  Returns:         cursor 
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+BEGIN
+
+   open outretcursor for
+         select  rk.name, rkm.tag, rkm.messagetype, rkm.selector 
+           from fincfg.routingkeywordmaps rkm, fincfg.routingkeywords rk
+         where  rkm.routingkeywordid = rk.id;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving keywords: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getkeywordmappings(OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 370 (class 1255 OID 62548)
+-- Name: getkeywords(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getkeywords(OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN 7496
+  Description:     Gets the routing keywords
+  Parameters:      n/a
+  Returns:         cursor 
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+BEGIN
+
+   open outretcursor for
+         select id, name,  comparer,  selector,  description,  selectoriso from fincfg.routingkeywords;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving keywords: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getkeywords(OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 452 (class 1255 OID 62549)
+-- Name: getlastbusinessday(date, integer); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getlastbusinessday(indate date, innoofdays integer) RETURNS date
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         06.Feb.2014, DenisaN 8192
+  Description:     Returns the last business day, given a number of days (to decrease or increase)
+  Parameters:      inDate - starting date
+                   inNoOfDays - days to decrease/increase                                
+  Returns:         date
+  Used:            FinTP/BASE/BD
+***********************************************/
+
+
+v_lastBusinessDay   date;
+v_count             integer default 0; 
+
+
+BEGIN
+
+  v_lastBusinessDay := inDate - inNoOfDays;
+
+  if inNoOfDays > 0 then 
+
+       --number of non working days in the interval (before)
+        select count(*) into v_count from fincfg.nonbussdayscalendar where nonbusinessdate < inDate and nonbusinessdate >= (inDate - inNoOfDays);
+        
+        if v_count = 0 then
+            return v_lastBusinessDay;
+        else
+            return fincfg.getlastbusinessday(v_lastBusinessDay, v_count);
+        end if;
+
+
+  else  
+    
+         --number of non working days in the interval (ahead)
+        select count(*) into v_count from fincfg.nonbussdayscalendar where nonbusinessdate > inDate and nonbusinessdate <= (inDate - inNoOfDays);
+        
+        if v_count = 0 then
+            return v_lastBusinessDay;
+        else
+            return fincfg.getlastbusinessday(v_lastBusinessDay, v_count*(-1));
+        end if;
+  
+  end if;
+  
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while reading the calendar: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getlastbusinessday(indate date, innoofdays integer) OWNER TO fincfg;
+
+--
+-- TOC entry 371 (class 1255 OID 62550)
+-- Name: getmsgtypebusinessname(character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getmsgtypebusinessname(inmsgtype character varying) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:        10.Nov.2013, DenisaN
+  Description:    Returns the friendly/business name for one given message type
+  Parameters:     message type internal name
+  Returns:        message type friendly name
+  Used:           FinTP/BASE/DB
+***********************************************/
+
+v_fname varchar;
+
+BEGIN
+
+     select friendlyname into v_fname from fincfg.messagetypes where messagetype = inMsgType;
+     return v_fname;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving messagetype: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getmsgtypebusinessname(inmsgtype character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 432 (class 1255 OID 62551)
+-- Name: getqueueid(character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getqueueid(inqueuename character varying) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:        10.Aug.2018, dd 
+  Description:    Returns the queue identifier 
+  Parameters:     queue name
+  Returns:        queue id
+  Used:           FinTPc//DB
+***********************************************/
+
+v_queueid integer;
+
+BEGIN
+
+     select id into v_queueid from fincfg.queues where name = inqueuename;
+     return v_queueid;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving queue id: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getqueueid(inqueuename character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 372 (class 1255 OID 62552)
+-- Name: getqueues(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getqueues(OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  05.Jun.2018, DanielC - 12857
+  Created:         27.Mar.2013, DenisaN
+  Description:     Gets all queues and all service maps non/associated
+  Parameters:      n/a
+  Returns:         cursor result set
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+BEGIN
+
+   open outretcursor  for
+             select  q.id, q.name,  sm.exitpoint,  sm.name as servicename,  sm.id as servicemapid, sm.duplicatequeue, q.holdstatus, sm.duplicatenotificationqueue, sm.delayednotificationqueue 
+              from  fincfg.queues q
+              left join fincfg.servicemaps sm
+              on q.exitpoint = sm.id;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving queues: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getqueues(OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 373 (class 1255 OID 62553)
+-- Name: getrule(integer); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getrule(inruleid integer, OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN 7496
+  Description:     Gets a routing rule by its identifier
+  Parameters:      inRuleID - identifier of the rule being retrieved
+  Returns:         cursor  representing  specified routing rule
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+BEGIN
+
+   open outretcursor for
+      select id, queueid, description, messagecondition, functioncondition,  metadatacondition,  action
+        from  fincfg.routingrules where  id = inRuleID;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving routing rule: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getrule(inruleid integer, OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 375 (class 1255 OID 62554)
+-- Name: getrulesforschema(character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getrulesforschema(OUT outretcursor refcursor, inschemaname character varying) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN 7496
+  Description:     Gets routing definition for the specified routing schema
+  Parameters:      inSchemaName - name of the routing schema
+  Returns:         cursor  representing the routing definition
+  Used:            FinTP/BASE/RE
+***********************************************/    
+ 
+BEGIN
+
+   open outretcursor for
+        select rr.id, rr.sequence, rr.ruletype from fincfg.routingrules rr
+       join fincfg.routingschemas rs 
+       on rs.id = rr.routingschemaid and  rs.name = inschemaname;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving rules: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getrulesforschema(OUT outretcursor refcursor, inschemaname character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 457 (class 1255 OID 217828)
+-- Name: getservicename(integer); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getservicename(inserviceid integer) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:        10.Dec.2020, dd 14522               
+  Description:    Returns service name, based on id.
+  Parameters:      n/a
+  Returns:         service name    
+  Used:            FinTP/BASE/DB
+***********************************************/
+
+v_servname varchar(100);
+
+BEGIN
+
+  select name into v_servname from fincfg.servicemaps where id = inserviceid;
+
+  return case when v_servname is null then 'n/a' else v_servname end;
+     
+
+EXCEPTION
+WHEN OTHERS THEN
+  return 'n/a';
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getservicename(inserviceid integer) OWNER TO fincfg;
+
+--
+-- TOC entry 374 (class 1255 OID 62555)
+-- Name: getservicestate(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getservicestate() RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         06.Dec.2013, DenisaN
+  Description:     Collects service statistic data
+  Parameters:      n/a
+  Returns:         outRetCursor  cursor  representing service info
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+v_cursor REFCURSOR;
+
+BEGIN
+ 
+   
+  open v_cursor for
+     select id, status, name, heartbeatinterval, sessionid from fincfg.servicemaps;
+  return (v_cursor);
+     
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving active schemas: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getservicestate() OWNER TO fincfg;
+
+--
+-- TOC entry 454 (class 1255 OID 62556)
+-- Name: gettimelimits(); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.gettimelimits(OUT outretcursor refcursor) RETURNS refcursor
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN 
+  Description:     Gets the time limits
+  Parameters:      n/a
+  Returns:         cursor  representing schema time limits
+  Used:            FinTP/BASE/RE
+***********************************************/
+
+BEGIN
+
+  open outretcursor for
+    select id, name, to_char(cutoff, 'hh24:mi:ss') limittime from fincfg.timelimits;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving time limits: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.gettimelimits(OUT outretcursor refcursor) OWNER TO fincfg;
+
+--
+-- TOC entry 376 (class 1255 OID 62557)
+-- Name: getusername(integer); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.getusername(inuserid integer) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:        23.Sep.2015, DenisaN 
+  Description:    Returns the username one given user identifier
+  Parameters:     user identifier
+  Returns:        user name
+  Used:           FinTP/BASE/DB
+***********************************************/
+
+v_uname varchar;
+
+BEGIN
+
+     select username into v_uname from fincfg.users where id = inuserid;
+     return v_uname;
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving user name: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.getusername(inuserid integer) OWNER TO fincfg;
+
+--
+-- TOC entry 458 (class 1255 OID 2022560)
+-- Name: recoverinactiveschemas(character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.recoverinactiveschemas(incurrenttime character varying) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         27.Aug.2021, dd 15918
+  Description:     verifies if hold/release queues are still inactive for inactive schemas
+  Parameters:      inCurrentTime - current time [format:HH24:MI:SS]
+  Returns:            
+  Used:            FinTPc/BASE/RE
+***********************************************/
+
+ v_currentTime timestamp;
+ v_row			fincfg.routingschemas%rowtype;
+ v_row2         fincfg.routingrules%rowtype;
+  
+BEGIN
+ 
+   v_currentTime := to_timestamp( inCurrentTime,'HH24:MI:SS' );
+   
+  for v_row in 
+   (   select * from fincfg.routingschemas where
+      not ( timelimitid1 in ( select id from fincfg.timelimits where ( cutoff - date_trunc( 'day', cutoff ) ) < ( v_currentTime - date_trunc( 'day', v_currentTime ) ) )
+       and 
+        timelimitid2 in ( select id from fincfg.timelimits where ( cutoff - date_trunc( 'day', cutoff ) ) > ( v_currentTime - date_trunc( 'day', v_currentTime ) ) )
+       )
+    )
+  loop
+     for v_row2 in (select * from fincfg.routingrules 
+                   where routingschemaid = v_row.id and action in ('ReleaseQueue','HoldQueue'))
+     loop
+         update fincfg.queues set holdstatus = 1 where id = v_row2.queueid;
+     end loop;
+  end loop;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while retrieving active schemas: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.recoverinactiveschemas(incurrenttime character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 377 (class 1255 OID 62558)
+-- Name: updateservicestate(integer, integer, character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.updateservicestate(inserviceid integer, instatus integer, insessionid character varying) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         29.May.2013, DenisaN
+  Description:     Updates the state of the specified service
+  Parameters:      inServiceID - service identifier to be updated
+                   inStatus - service new state
+                   inSessionID - session identifier
+  Returns:         n/a
+  Used:            FinTP/BASE/RE
+***********************************************/ 
+
+BEGIN
+
+  update fincfg.servicemaps set status = inStatus, sessionid = inSessionID where id = inServiceID;
+
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while updating service status: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.updateservicestate(inserviceid integer, instatus integer, insessionid character varying) OWNER TO fincfg;
+
+--
+-- TOC entry 378 (class 1255 OID 62559)
+-- Name: updateversion(character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: fincfg; Owner: fincfg
+--
+
+CREATE FUNCTION fincfg.updateversion(inservicename character varying, inname character varying, inversion character varying, inmachine character varying, inhash character varying) RETURNS void
+    LANGUAGE plpgsql
+    AS $$DECLARE
+
+/*
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <office@allevo.ro>, www.allevo.ro.
+*/
+/************************************************
+  Change history:  dd.mon.yyyy  --  author  --   description
+  Created:         18.Feb.2014, DenisaN
+  Description:     Update app service version 
+  Parameters:      inservicename  - service name
+                   inname - short description
+                   inversion - current version
+                    inmachine - hosting machine
+                   inhash - hash value                         
+  Returns:         n/a
+  Used:            FinTP/BASE/EW
+***********************************************/
+
+v_count integer;
+
+BEGIN
+
+  select count(servicename) into v_Count from fincfg.versions where servicename=inServiceName;
+
+  if v_Count > 0 then
+     
+        update fincfg.versions set servicename=inServiceName, name=inName,
+                version=inVersion, machine=inMachine, hash=inHash where servicename=inServiceName;
+         
+     else
+     
+        insert into fincfg.versions( servicename, name, version, machine, hash ) 
+                             values( inServiceName, inName, inVersion, inMachine, inHash );
+        
+  end if;
+     
+         
+
+EXCEPTION
+WHEN OTHERS THEN
+   RAISE EXCEPTION 'Unexpected error occured while config app: %', SQLERRM;
+       
+END;
+$$;
+
+
+ALTER FUNCTION fincfg.updateversion(inservicename character varying, inname character varying, inversion character varying, inmachine character varying, inhash character varying) OWNER TO fincfg;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 331 (class 1259 OID 2022477)
+-- Name: configbsandplrepo; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.configbsandplrepo (
+    label character varying(300),
+    name character varying(35) NOT NULL,
+    mandatory character varying(2) NOT NULL,
+    reportingcategory character varying(35) NOT NULL,
+    id integer NOT NULL,
+    level character varying(30)
+);
+
+
+ALTER TABLE fincfg.configbsandplrepo OWNER TO fincfg;
+
+--
+-- TOC entry 225 (class 1259 OID 62757)
+-- Name: idgenlist; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.idgenlist (
+    tabcolname character varying(35) NOT NULL,
+    idvalue integer
+);
+
+
+ALTER TABLE fincfg.idgenlist OWNER TO fincfg;
+
+--
+-- TOC entry 226 (class 1259 OID 62760)
+-- Name: messagetypes; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.messagetypes (
+    messagetype character varying(50) NOT NULL,
+    friendlyname character varying(50) NOT NULL,
+    displayorder integer,
+    storage character varying(35) NOT NULL,
+    businessarea character varying(100) NOT NULL,
+    reportingstorage character varying(35),
+    parentmessagetype character varying(35),
+    namespace character varying(300)
+);
+
+
+ALTER TABLE fincfg.messagetypes OWNER TO fincfg;
+
+--
+-- TOC entry 227 (class 1259 OID 62763)
+-- Name: nonbussdayscalendar; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.nonbussdayscalendar (
+    nonbusinessdate date NOT NULL,
+    description character varying(50)
+);
+
+
+ALTER TABLE fincfg.nonbussdayscalendar OWNER TO fincfg;
+
+--
+-- TOC entry 291 (class 1259 OID 183083)
+-- Name: params; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.params (
+    name character varying(35) NOT NULL,
+    value character varying(300),
+    description character varying(50),
+    category character varying(35) NOT NULL,
+    id integer,
+    code character varying(30)
+);
+
+
+ALTER TABLE fincfg.params OWNER TO fincfg;
+
+--
+-- TOC entry 228 (class 1259 OID 62832)
+-- Name: queuemessagegroups; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.queuemessagegroups (
+    messagetype character varying(35) NOT NULL,
+    routingkeyword1 character varying(35),
+    routingkeyword2 character varying(35),
+    routingkeyword3 character varying(35),
+    routingkeyword4 character varying(35),
+    routingkeyword5 character varying(35)
+);
+
+
+ALTER TABLE fincfg.queuemessagegroups OWNER TO fincfg;
+
+--
+-- TOC entry 229 (class 1259 OID 62835)
+-- Name: queuemessagetrxheader; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.queuemessagetrxheader (
+    routingkeywordname character varying(50) NOT NULL,
+    label character varying(50),
+    displayorder integer,
+    messagetype character varying(50) NOT NULL,
+    contenttype character varying(100)
+);
+
+
+ALTER TABLE fincfg.queuemessagetrxheader OWNER TO fincfg;
+
+--
+-- TOC entry 332 (class 1259 OID 2022545)
+-- Name: queuemovemaps; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.queuemovemaps (
+    id integer NOT NULL,
+    sourcequeueid integer NOT NULL,
+    destinationqueueid integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.queuemovemaps OWNER TO fincfg;
+
+--
+-- TOC entry 230 (class 1259 OID 62838)
+-- Name: queues; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.queues (
+    id integer NOT NULL,
+    name character varying(50),
+    label character varying(50),
+    queuetypeid integer,
+    priority integer DEFAULT 50,
+    description character varying(100),
+    holdstatus integer NOT NULL,
+    exitpoint integer NOT NULL,
+    maxtrxonbatch integer,
+    messagetypesbusinessarea character varying(100),
+    category character varying(100)
+);
+
+
+ALTER TABLE fincfg.queues OWNER TO fincfg;
+
+--
+-- TOC entry 231 (class 1259 OID 62842)
+-- Name: queuetypes; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.queuetypes (
+    id integer NOT NULL,
+    name character varying(50) NOT NULL
+);
+
+
+ALTER TABLE fincfg.queuetypes OWNER TO fincfg;
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 346 (class 1259 OID 2031201)
+-- Name: reportcfforcastcriteria; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.reportcfforcastcriteria (
+    id integer NOT NULL,
+    label character varying(100),
+    name character varying(35) NOT NULL,
+    mandatory character varying(2) NOT NULL,
+    prefill character varying(2) NOT NULL,
+    reportingcategory character varying(35) NOT NULL,
+    type character varying(30),
+    datasource character varying(500),
+    field character varying(50)
+);
+
+
+ALTER TABLE fincfg.reportcfforcastcriteria OWNER TO fincfg;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 232 (class 1259 OID 62845)
+-- Name: reportingtxstates; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.reportingtxstates (
+    status character varying(100) NOT NULL,
+    description character varying(200),
+    id integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.reportingtxstates OWNER TO fincfg;
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 233 (class 1259 OID 62848)
+-- Name: reportmessagecriteria; Type: TABLE; Schema: fincfg; Owner: postgres; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.reportmessagecriteria (
+    id integer NOT NULL,
+    label character varying(100),
+    displayorder integer,
+    messagetypesbusinessarea character varying(100),
+    type character varying(30),
+    datasource character varying(500),
+    field character varying(50),
+    masterlabel character varying(100)
+);
+
+
+ALTER TABLE fincfg.reportmessagecriteria OWNER TO postgres;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 313 (class 1259 OID 189000)
+-- Name: reportmessagecriteriatemplates; Type: TABLE; Schema: fincfg; Owner: postgres
+--
+
+CREATE TABLE fincfg.reportmessagecriteriatemplates (
+    criterionid integer NOT NULL,
+    value character varying(500),
+    templatename character varying(100) NOT NULL,
+    userid integer,
+    messagetypebusinessarea character varying(100)
+);
+
+
+ALTER TABLE fincfg.reportmessagecriteriatemplates OWNER TO postgres;
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 234 (class 1259 OID 62854)
+-- Name: reportmessageresults; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.reportmessageresults (
+    id integer NOT NULL,
+    label character varying(100),
+    field character varying(50),
+    displayorder integer,
+    messagetypesbusinessarea character varying(100),
+    defaultfield integer,
+    fieldtype character varying(100)
+);
+
+
+ALTER TABLE fincfg.reportmessageresults OWNER TO fincfg;
+
+--
+-- TOC entry 235 (class 1259 OID 62857)
+-- Name: roles; Type: TABLE; Schema: fincfg; Owner: postgres; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.roles (
+    id integer NOT NULL,
+    name character varying(100),
+    category character varying(100),
+    userdefined integer,
+    listofactions character varying(200),
+    listofentities boolean
+);
+
+
+ALTER TABLE fincfg.roles OWNER TO postgres;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 236 (class 1259 OID 62860)
+-- Name: routingkeywordmaps; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.routingkeywordmaps (
+    routingkeywordid integer NOT NULL,
+    tag character varying(500) NOT NULL,
+    messagetype character varying(35) NOT NULL,
+    selector character varying(11) NOT NULL,
+    id integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.routingkeywordmaps OWNER TO fincfg;
+
+--
+-- TOC entry 237 (class 1259 OID 62866)
+-- Name: routingkeywords; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.routingkeywords (
+    id integer NOT NULL,
+    name character varying(50) NOT NULL,
+    comparer character varying(200) NOT NULL,
+    selector character varying(200),
+    description character varying(200),
+    selectoriso character varying(200)
+);
+
+
+ALTER TABLE fincfg.routingkeywords OWNER TO fincfg;
+
+--
+-- TOC entry 238 (class 1259 OID 62872)
+-- Name: routingrules; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.routingrules (
+    id integer NOT NULL,
+    queueid integer NOT NULL,
+    routingschemaid integer NOT NULL,
+    sequence integer,
+    ruletype integer,
+    description character varying(70),
+    messagecondition character varying(500),
+    functioncondition character varying(500),
+    metadatacondition character varying(500),
+    action character varying(500)
+);
+
+
+ALTER TABLE fincfg.routingrules OWNER TO fincfg;
+
+--
+-- TOC entry 239 (class 1259 OID 62878)
+-- Name: routingrulesactions; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.routingrulesactions (
+    id integer NOT NULL,
+    label character varying(100),
+    displayorder integer,
+    type character varying(30),
+    datasource character varying(500)
+);
+
+
+ALTER TABLE fincfg.routingrulesactions OWNER TO fincfg;
+
+--
+-- TOC entry 240 (class 1259 OID 62884)
+-- Name: routingschemas; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.routingschemas (
+    name character varying(15) NOT NULL,
+    description character varying(250),
+    active integer DEFAULT 1,
+    id integer NOT NULL,
+    timelimitid1 integer NOT NULL,
+    timelimitid2 integer NOT NULL,
+    sessioncode character varying(10),
+    visible character varying(1)
+);
+
+
+ALTER TABLE fincfg.routingschemas OWNER TO fincfg;
+
+--
+-- TOC entry 241 (class 1259 OID 62887)
+-- Name: servicemaps; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.servicemaps (
+    name character varying(30),
+    id integer NOT NULL,
+    status integer NOT NULL,
+    lastsessionid integer,
+    heartbeatinterval integer NOT NULL,
+    lastheartbeat timestamp(6) without time zone,
+    version character varying(255),
+    partner character varying(255),
+    servicetype integer,
+    ioidentifier integer,
+    exitpoint character varying(300),
+    sessionid character varying(26),
+    duplicatecheck integer,
+    duplicatequeue character varying(50),
+    duplicatemap character varying(50),
+    duplicatenotificationqueue character varying(50),
+    delayednotificationqueue character varying(50)
+);
+
+
+ALTER TABLE fincfg.servicemaps OWNER TO fincfg;
+
+--
+-- TOC entry 242 (class 1259 OID 62893)
+-- Name: timelimits; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.timelimits (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    cutoff timestamp without time zone NOT NULL
+);
+
+
+ALTER TABLE fincfg.timelimits OWNER TO fincfg;
+
+--
+-- TOC entry 292 (class 1259 OID 183099)
+-- Name: txtemplates; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.txtemplates (
+    id integer NOT NULL,
+    configid integer NOT NULL,
+    name character varying(50),
+    entity character varying(100),
+    userid integer,
+    type integer
+);
+
+
+ALTER TABLE fincfg.txtemplates OWNER TO fincfg;
+
+--
+-- TOC entry 293 (class 1259 OID 183106)
+-- Name: txtemplatesconfig; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.txtemplatesconfig (
+    id integer NOT NULL,
+    messagetype character varying(20) NOT NULL,
+    validationxsd text,
+    type character varying(100),
+    entityxpath character varying(100)
+);
+
+
+ALTER TABLE fincfg.txtemplatesconfig OWNER TO fincfg;
+
+--
+-- TOC entry 295 (class 1259 OID 183125)
+-- Name: txtemplatesconfigdetailed; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.txtemplatesconfigdetailed (
+    configid integer NOT NULL,
+    fieldxpath character varying(100),
+    pattern character varying(100),
+    fieldvalue character varying(50),
+    fieldtype character varying(50),
+    mandatory boolean DEFAULT false,
+    fieldvisibility integer,
+    fieldlabel character varying(50),
+    fieldid integer,
+    optionid integer,
+    id integer NOT NULL,
+    editable boolean DEFAULT false,
+    busslist character varying(100),
+    busslistfield character varying(100),
+    conditions json,
+    visible boolean
+);
+
+
+ALTER TABLE fincfg.txtemplatesconfigdetailed OWNER TO fincfg;
+
+--
+-- TOC entry 294 (class 1259 OID 183120)
+-- Name: txtemplatesconfigoptions; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.txtemplatesconfigoptions (
+    id integer NOT NULL,
+    name character varying(50),
+    description character varying(200),
+    datasource character varying(50),
+    userid integer,
+    category character varying(55),
+    pattern character varying(25)
+);
+
+
+ALTER TABLE fincfg.txtemplatesconfigoptions OWNER TO fincfg;
+
+--
+-- TOC entry 296 (class 1259 OID 183144)
+-- Name: txtemplatesdetailed; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.txtemplatesdetailed (
+    templateid integer NOT NULL,
+    fieldid integer,
+    value character varying(100),
+    id integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.txtemplatesdetailed OWNER TO fincfg;
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 297 (class 1259 OID 183159)
+-- Name: txtemplatesgroups; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.txtemplatesgroups (
+    id integer NOT NULL,
+    templateid integer,
+    groupid integer,
+    name character varying(50),
+    userid integer
+);
+
+
+ALTER TABLE fincfg.txtemplatesgroups OWNER TO fincfg;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 243 (class 1259 OID 62896)
+-- Name: useractioncodes; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.useractioncodes (
+    useractionid integer NOT NULL,
+    code character varying(20),
+    label character varying(20),
+    description character varying(100),
+    id integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.useractioncodes OWNER TO fincfg;
+
+--
+-- TOC entry 244 (class 1259 OID 62899)
+-- Name: useractionmaps; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.useractionmaps (
+    id integer NOT NULL,
+    queuetypeid integer,
+    useractionid integer,
+    messagetype character varying(50)
+);
+
+
+ALTER TABLE fincfg.useractionmaps OWNER TO fincfg;
+
+--
+-- TOC entry 245 (class 1259 OID 62902)
+-- Name: useractions; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.useractions (
+    id integer NOT NULL,
+    name character varying(20) NOT NULL,
+    label character varying(20),
+    currentmessage integer,
+    selectedmessage integer,
+    groupmessage integer,
+    priority integer,
+    location character varying(15),
+    codeselection integer,
+    function character varying(200),
+    detailsinput integer
+);
+
+
+ALTER TABLE fincfg.useractions OWNER TO fincfg;
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 246 (class 1259 OID 62905)
+-- Name: userdefinedroles; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.userdefinedroles (
+    roleid integer NOT NULL,
+    messagetype character varying(100),
+    internalentityname character varying(35),
+    id integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.userdefinedroles OWNER TO fincfg;
+
+--
+-- TOC entry 330 (class 1259 OID 2022316)
+-- Name: userrolesentitymaps; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.userrolesentitymaps (
+    id integer NOT NULL,
+    userid integer,
+    roleid integer,
+    entityid integer NOT NULL
+);
+
+
+ALTER TABLE fincfg.userrolesentitymaps OWNER TO fincfg;
+
+--
+-- TOC entry 247 (class 1259 OID 62908)
+-- Name: userrolesmaps; Type: TABLE; Schema: fincfg; Owner: postgres; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.userrolesmaps (
+    id integer NOT NULL,
+    userid integer,
+    roleid integer,
+    action character varying(35) NOT NULL
+);
+
+
+ALTER TABLE fincfg.userrolesmaps OWNER TO postgres;
+
+--
+-- TOC entry 248 (class 1259 OID 62911)
+-- Name: users; Type: TABLE; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE TABLE fincfg.users (
+    id integer NOT NULL,
+    username character varying(100),
+    email character varying(100)
+);
+
+
+ALTER TABLE fincfg.users OWNER TO fincfg;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 249 (class 1259 OID 62914)
+-- Name: versions; Type: TABLE; Schema: fincfg; Owner: fincfg
+--
+
+CREATE TABLE fincfg.versions (
+    servicename character varying(50) NOT NULL,
+    name character varying(50) NOT NULL,
+    version character varying(100) NOT NULL,
+    hash character varying(100),
+    machine character varying(50)
+);
+
+
+ALTER TABLE fincfg.versions OWNER TO fincfg;
+
+--
+-- TOC entry 4453 (class 0 OID 2022477)
+-- Dependencies: 331
+-- Data for Name: configbsandplrepo; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.configbsandplrepo (label, name, mandatory, reportingcategory, id, level) FROM stdin;
+Investitii pe termen scurt (Short Term Investments)	omfp9	M	Balance Sheet	57	
+Productia vanduta (Net Product Sales)	omfp2	M	Profit and Loss	21	limited
+Venituri din vanzarea marfurilor (Merchandise Sales Revenues)	omfp3	M	Profit and Loss	26	limited
+Alte cheltuieli de exploatare (Other operating expenses)	omfp30	M	Profit and Loss	27	limited
+Alte venituri din exploatare (Other operating revenues)	omfp12	M	Profit and Loss	11	limited
+Venituri din exploatare (Operating revenues)	omfp15	M	Profit and Loss	13	limited
+Total venituri (Total revenues)	omfp60	M	Profit and Loss	49	limited
+Total venituri financiare (Total financial revenues)	omfp50	M	Profit and Loss	42	limited
+Cheltuieli cu materiile prime si materialele (Raw materials cost)	omfp16	M	Profit and Loss	14	limited
+Cheltuieli cu personalul (Employee costs)	omfp21	M	Profit and Loss	23	limited
+Cheltuieli de exploatare (Operating expenses)	omfp40	M	Profit and Loss	30	limited
+Capital (Equity)	omfp31	M	Balance Sheet	28	
+Rezerve (Reserves)	omfp39	M	Balance Sheet	29	
+Rezultatul exploatarii - Profit (Operating Profit)	omfp41	C1	Profit and Loss	31	
+Rezultatul exploatarii - Pierdere (Operating Loss)	omfp42	C1	Profit and Loss	32	
+Profitul sau pierderea reportata - sold Credit (Reported Profit)	omfp43	C6	Balance Sheet	33	
+Profitul sau pierderea reportata - sold Debit (Reported Loss)	omfp44	C6	Balance Sheet	34	
+Profit sau pierderea exercitiului financiar - sold Credit (Profit)	omfp45	C5	Balance Sheet	35	
+Cifra de afaceri neta (Turnover)	omfp1	M	Profit and Loss	6	
+Casa si conturi la banci (Cash and bank balance)	omfp10	M	Balance Sheet	7	
+Total Active Circulante (Total Current Assets)	omfp11	M	Balance Sheet	8	
+Venituri din subventii de exploatare (Operating Subventions Revenues)	omfp11	M	Profit and Loss	9	
+Cheltuieli in avans (Prepaid Expenses)	omfp12	M	Balance Sheet	10	
+Alte cheltuieli materiale (Other Manufacturing Expenses)	omfp17	M	Profit and Loss	15	
+Datorii pe termen lung - o perioada mai mare de 1 an (Long term liabilities)	omfp18	M	Balance Sheet	16	
+Alte cheltuieli externe - cu energie si apa (Utilities cost)	omfp18	M	Profit and Loss	17	
+Provizioane (Provisions)	omfp19	M	Balance Sheet	18	
+Cheltuieli privind marfurile (Selling and administration expenses)	omfp19	M	Profit and Loss	19	
+Imobilizari corporale (Tangible Assets)	omfp2	M	Balance Sheet	20	
+Ajustari de valoare privind imobilizarile corporale si necorporale (Stock adjustmenst)	omfp24	M	Profit and Loss	24	
+Imobilizari financiare (Financial Assets)	omfp3	M	Balance Sheet	25	
+Profit sau pierderea exercitiului financiar - sold Debit (Loss)	omfp46	C5	Balance Sheet	37	
+Repartizarea profitului (Profit distribution)	omfp47	M	Balance Sheet	38	
+Total Capital Propriu (Total Shareholders' Equity)	omfp48	M	Balance Sheet	39	
+Alte venituri financiare (Other financial revenues)	omfp48	M	Profit and Loss	40	
+Stocuri (Inventories)	omfp5	M	Balance Sheet	41	
+Rezultatul financiar - Profit (Financial Profit)	omfp58	C2	Profit and Loss	46	
+Rezultatul financiar - Pierdere (Financial Loss)	omfp59	C2	Profit and Loss	47	
+Impozitul pe profit (Tax expenses)	omfp64	M	Profit and Loss	53	
+Profitul sau pierderea net(a) - Profit (Net Profit)	omfp67	C4	Profit and Loss	54	
+Profitul sau pierderea net(a) - Pierdere (Net Loss)	omfp68	C4	Profit and Loss	55	
+Rata profitului (Profit Rate)	profitrate	O	KPIs	58	
+ROE	roe	O	KPIs	59	
+TOTAL ACTIV (TOTAL ASSETS)	totalact	M	Balance Sheet	60	
+Total Active Imobilizate(Total Fixed Assets)	totalactimob	M	Balance Sheet	61	
+Total Capital Strain (Total Liabilities)	totalcapstr	M	Balance Sheet	62	
+TOTAL PASIV (TOTAL LIABILITIES AND SHAREHOLDERS' EQUITY)	totalpas	M	Balance Sheet	63	
+Total cheltuieli (Total expenses)	omfp61	M	Profit and Loss	50	limited
+Total cheltuieli financiare (Total financial expenses)	omfp57	M	Profit and Loss	45	limited
+Profitul sau pierderea brut(a) - Pierdere (Gross Loss)	omfp63	C3	Profit and Loss	52	limited
+Gradul de rotatie al activelor (Asset Turnover Ratio)	assetrurnoverratio	O	KPIs	1	
+Lichiditatea curenta  (Current Ratio)	currentratio	O	KPIs	2	
+Gradul de indatorare (Debt Ratio)	debitratio	O	KPIs	3	
+Costuri personal din CA (Employee Costs In Turnover)	emplcostsinturnover	O	KPIs	4	
+Imobilizari necorporale (Intangible Assets)	omfp1	M	Balance Sheet	5	
+Datorii pe permen scurt - o perioada mai mica de 1 an (Current liabilities)	omfp15	M	Balance Sheet	12	
+Venituri in avans (Unearned revenue)	omfp20	M	Balance Sheet	22	
+Cheltuieli privind dobanzile (Interest expense)	omfp54	M	Profit and Loss	43	
+Alte cheltuieli financiare (Other financial costs)	omfp56	M	Profit and Loss	44	
+Profitul sau pierderea brut(a) - Profit (Gross Profit)	omfp62	C3	Profit and Loss	51	limited
+Creante (Accounts receivable)	omfp8	M	Balance Sheet	48	
+Venituri din productia de imobilizari necorporale si corporale (Fixed Assets Production Revenues)	omfp8	M	Profit and Loss	56	
+Venituri din dobanzi (Interest revenue)	omfp45	M	Profit and Loss	36	
+\.
+
+
+--
+-- TOC entry 4419 (class 0 OID 62757)
+-- Dependencies: 225
+-- Data for Name: idgenlist; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.idgenlist (tabcolname, idvalue) FROM stdin;
+ROUTINGRULES_ID	56760
+BATCHREQUESTS_REQUESTID	4
+BSFORECAST_ID	25
+CONNECT_ID	1704
+PAYMENTS_ID	3452
+USERROLESENTITYMAPS_ID	450
+EDITEDTRANSACTIONS_ID	3051
+STATUS_GUID	19400
+USERROLESMAPS_ID	4500
+ROLES_ID	2201
+USERDEFINEDROLES_ID	3700
+TXTEMPLATESCONFIGOPTIONS_ID	1
+TXTEMPLATESCONFIGDETAILED_FIELDID	0
+TXTEMPLATESCONFIG_ID	251
+BSLOADHISTORY_ID	370
+QUEUES_ID	3200
+TXTEMPLATES_ID	2701
+TXTEMPLATESDETAILED_ID	2851
+USERS_ID	2651
+INTERNALENTITIES_ID	1850
+EXTERNALENTITIES_ID	1000
+ENRICH_ID	1000
+VALIDATIONRULES_ID	1850
+EDITRULES_ID	550
+TXTEMPLATESCONFIGDETAILED_ID	2855
+EXTERNALACCOUNTS_ID	1100
+TXTEMPLATESGROUPS_ID	950
+PLLOADHISTORY_ID	720
+LOCATIONCODES_ID	451
+ROUTINGSCHEMAS_ID	25202
+TIMELIMITS_ID	38703
+BUDGETCODES_ID	201
+INTERNALACCOUNTS_ID	2000
+ACCOUNTINGCODES_ID	301
+TXPROCESSINGTESTLOG_ID	850
+CFFORECASTGENDATA_ID	300
+CASHFLOWFORECAST_ID	300
+\.
+
+
+--
+-- TOC entry 4420 (class 0 OID 62760)
+-- Dependencies: 226
+-- Data for Name: messagetypes; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.messagetypes (messagetype, friendlyname, displayorder, storage, businessarea, reportingstorage, parentmessagetype, namespace) FROM stdin;
+CstmrCdtTrfInitnSala	Salary Payment	\N	MTCdtTrfInitnSalaTAB	Payments	MTCdtTrfInitnSalaview		\N
+BkToCstmrDbtCdtNtfctn	Statement transaction	\N	MTBkToCstmrDbtCdtTAB	Statements	MTBkToCstmrDbtCdtView	\N	\N
+FinInvc	Invoice	\N	MTFinInvcTAB	Invoices	MTFinInvcView	\N	\N
+Undefined	Undefined	1	n/a	Outstanding	MTUndefinedView		\N
+\.
+
+
+--
+-- TOC entry 4421 (class 0 OID 62763)
+-- Dependencies: 227
+-- Data for Name: nonbussdayscalendar; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+--
+-- TOC entry 4444 (class 0 OID 183083)
+-- Dependencies: 291
+-- Data for Name: params; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.params (name, value, description, category, id, code) FROM stdin;
+No of days -  Payments	1	*business days	Possible duplicates detection	3	DDPYMT
+No of days - Invoices	1	*business days	Possible duplicates detection	5	DDINVC
+No of days - events	25	*business days	Archiving	\N	ARCHPE
+Hours interval	12-23	*mm-hh24	Archiving	\N	ARCHI
+No of days - Statements	60	*business days	Archiving	\N	ARCHPS
+No of days - Payments	60	*business days	Archiving	\N	ARCHPP
+No of days - Invoices	60	*business days	Archiving	\N	ARCHPI
+No of days - Statements	1	*business days	Possible duplicates detection	4	DDSTMT
+\.
+
+
+--
+-- TOC entry 4422 (class 0 OID 62832)
+-- Dependencies: 228
+-- Data for Name: queuemessagegroups; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.queuemessagegroups (messagetype, routingkeyword1, routingkeyword2, routingkeyword3, routingkeyword4, routingkeyword5) FROM stdin;
+BkToCstmrDbtCdtNtfctn	AccountNumber	TrxMark	\N	\N	\N
+CstmrCdtTrfInitnSala	OrderingBank	DbtAccount	\N	\N	\N
+FinInvc	DbtCustomerName	CdtCustomerName	\N	\N	\N
+\.
+
+
+--
+-- TOC entry 4423 (class 0 OID 62835)
+-- Dependencies: 229
+-- Data for Name: queuemessagetrxheader; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.queuemessagetrxheader (routingkeywordname, label, displayorder, messagetype, contenttype) FROM stdin;
+endtoendid	Original ID	3	CstmrCdtTrfInitnTaxs	string
+cdtaccount	Beneficiary account	5	CstmrCdtTrfInitnTaxs	string
+amount	Amount 	7	CstmrCdtTrfInitnSala	number
+currency	Currency 	8	CstmrCdtTrfInitnSala	string
+valuedate	Execution date 	9	CstmrCdtTrfInitnTaxs	date
+beneficiarybank	Beneficiary BIC	6	CstmrCdtTrfInitnTaxs	string
+invoiceno	Number	1	FinInvc	string
+invoiceserial	Serial	2	FinInvc	string
+originalreference	Original Reference	4	FinInvc	string
+amount	Amount	5	FinInvc	number
+amount	Amount 	7	CstmrCdtTrfInitnSupp	number
+currency	Currency 	8	CstmrCdtTrfInitnSupp	string
+amount	Amount 	7	CstmrCdtTrfInitnTaxs	number
+currency	Currency 	8	CstmrCdtTrfInitnTaxs	string
+issuancedate	Issue Date	3	FinInvc	date
+endtoendid	Original ID	3	CstmrCdtTrfInitnSala	string
+cdtaccount	Beneficiary Account	5	CstmrCdtTrfInitnSala	string
+valuedate	Execution date 	9	CstmrCdtTrfInitnSala	date
+cdtcustomername	Beneficiary	4	CstmrCdtTrfInitnSala	string
+beneficiarybank	Beneficiary BIC	6	CstmrCdtTrfInitnSala	string
+endtoendid	Original ID	3	CstmrCdtTrfInitnSupp	string
+cdtaccount	Beneficiary Account	5	CstmrCdtTrfInitnSupp	string
+cdtcustomername	Beneficiary	4	CstmrCdtTrfInitnSupp	string
+valuedate	Execution date 	9	CstmrCdtTrfInitnSupp	date
+requestorservice	Requestor Service	2	Undefined	string
+correlationid	Internal ID	3	Undefined	string
+cdtcustomername	Beneficiary Name	4	CstmrCdtTrfInitnTaxs	string
+endtoendid	Original ID	3	CstmrCdtTrfInitnVatx	string
+amount	Amount	2	BkToCstmrDbtCdtNtfctn	number
+valuedate	Value Date	4	BkToCstmrDbtCdtNtfctn	date
+cdtaccount	Beneficiary account	5	CstmrCdtTrfInitnVatx	string
+valuedate	Execution date 	9	CstmrCdtTrfInitnVatx	date
+cdtcustomername	Beneficiary	4	CstmrCdtTrfInitnVatx	string
+amount	Amount 	7	CstmrCdtTrfInitnOthr	number
+currency	Currency 	8	CstmrCdtTrfInitnOthr	string
+beneficiarybank	Beneficiary BIC	6	CstmrCdtTrfInitnVatx	string
+amount	Amount 	7	CstmrCdtTrfInitnVatx	number
+currency	Currency 	8	CstmrCdtTrfInitnVatx	string
+reference	Reference	1	BkToCstmrDbtCdtNtfctn	string
+endtoendid	Original ID	3	CstmrCdtTrfInitnOthr	string
+cdtaccount	Beneficiary account	5	CstmrCdtTrfInitnOthr	string
+valuedate	Execution date 	9	CstmrCdtTrfInitnOthr	date
+cdtcustomername	Beneficiary	4	CstmrCdtTrfInitnOthr	string
+beneficiarybank	Beneficiary BIC	6	CstmrCdtTrfInitnOthr	string
+beneficiarybank	Beneficiary BIC	6	CstmrCdtTrfInitnSupp	string
+\.
+
+
+--
+-- TOC entry 4454 (class 0 OID 2022545)
+-- Dependencies: 332
+-- Data for Name: queuemovemaps; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.queuemovemaps (id, sourcequeueid, destinationqueueid) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4424 (class 0 OID 62838)
+-- Dependencies: 230
+-- Data for Name: queues; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.queues (id, name, label, queuetypeid, priority, description, holdstatus, exitpoint, maxtrxonbatch, messagetypesbusinessarea, category) FROM stdin;
+1001	PaymentsDupOutQueue	PaymentsDupOutQueue	5	0	Outgoing Payments possible duplicates	0	0	0		\N
+1	InvestigOutQueue	IssuedTechnicalInvestigation	2	10	Technical Investigation queue for issued transcations	0	0	0	\N	\N
+2	InvestigInQueue	ReceivedTechnicalInvetigation	2	10	Technical Investigation queue for received transcations	0	0	0	\N	\N
+210	BOStatementsInQueue	Statements	6	0	Incoming Statement transactions authorization/exit queue	0	203	0		Transactions
+3151	BOPaymentsInQueue	BOPaymentsInQueue	6	10	dummy	0	202	0	\N	\N
+1052	StatementsDupInQueue	Statements Possbile duplicates	5	0	Incoming statements possible duplicates	0	0	0	\N	\N
+1204	InvoicesIssuedDupOutQueue	InvoicesIssuedDupOutQueue	5	0	Outgoing Invoices possible duplicates	0	0	0	\N	\N
+1206	InvoicesIssuedOutQueue	InvoicesIssuedOutQueue	6	0		0	301	0		
+103	Complete	Complete	1	10	Complete queue	0	0	\N	\N	\N
+1207	InvoicesReceivedOutQueue	InvoicesReceivedOutQueue	6	0		0	300	0		
+209	StatementsInQueue	StatementsInQueue	1	0	Incoming Statement transactions entry queue	0	0	0	\N	\N
+1808	StatementsAPIINGInQueue	StatementsAPIINGInQueue	1	0	stm entry queue for trz report from ING	0	0	0		
+902	BOInvoicesReceivedOutQueue	Received Invoices	1	0	Outgoing received invoices entry queue	0	0	0		\N
+200	BOPaymentsOutQueue	BOPaymentsOutQueue	1	0	Outgoing Payments entry queue	0	0	0	\N	\N
+901	BOInvoicesIssuedOutQueue	Issued Invoices	1	0	Outgoing issued invoices entry queue	0	0	0		
+1054	StatementsOutQueue	StatementsOutQueue	1	0	dummy queue	0	204	0		
+1205	InvoicesReceivedDupOutQueue	InvoicesReceivedDupOutQueue	5	0	Outgoing Invoices possible duplicates	0	0	0	\N	\N
+\.
+
+
+--
+-- TOC entry 4425 (class 0 OID 62842)
+-- Dependencies: 231
+-- Data for Name: queuetypes; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.queuetypes (id, name) FROM stdin;
+1	Ordinary
+2	Technical Investigation
+3	Business Investigation
+5	Duplicates Investigation
+6	Authorization
+7	Edit
+\.
+
+
+--
+-- TOC entry 4455 (class 0 OID 2031201)
+-- Dependencies: 346
+-- Data for Name: reportcfforcastcriteria; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.reportcfforcastcriteria (id, label, name, mandatory, prefill, reportingcategory, type, datasource, field) FROM stdin;
+1	Nr. (No.)	OperationNo	M	Y	Input Forecast CF	string		oprationno
+2	Tip operatiune (Operation Type)	OperationType	M	N	Input Forecast CF	multiselect	["Incasare (Collection)","Plata (Payment)", "Sold initial (Initial Account Balance)"]	operationtype
+3	Subtip operatiune (Operation subtype)	OperationSubtype	M	N	Input Forecast CF	multiselect	["cu document de plata (with payment document)", "fara document de plata (without payment document)"]	operationsubtype
+4	Tip Venit/ Cheltuiala\n(Type of Revenue/ Expense)	RevenueExpenseType	M	N	Input Forecast CF	multiselect	["Venituri din exploatare (Operating revenues)","Venituri financiare (Financial revenues)", "Venituri financiare (Financial revenues)","Cheltuieli de exploatare (Operating expenses)","Cheltuieli de personal (Personnel expenses)","Cheltuieli cu impozite si taxe (Tax expenses)","Cheltuieli financiare (Financial expenses)"	revenueexpensetype
+5	Tip informatii\n(Information type)	InformationType	M	N	Input Forecast CF	multiselect	["informatii estimative (estimated information)","informatii din documentul de plata (information from payment document),"informatii estimative  (estimated information)"]	informationtype
+7	Suma operatiune (Operation amount)	OperationAmount	M	N	Input Forecast CF	number		operationamount
+6	Nume Client platitor/ furnizor (Payer / Supplier name)	PayerSupplierName	O	N	Input Forecast CF	string		payersuppliername
+8	Moneda (Currency)	OperationCurrency	M	Y	Input Forecast CF	string	'RON'	operationcurrency
+9	Data emitere document de plata (Issue Date)	IssueDate	O	N	Input Forecast CF	date		issuedate
+10	Termen plata (Payment due date)	PaymentDueDate	O	N	Input Forecast CF	date		paymentduedate
+12	IBAN	OperationIBAN	M	N	Input Forecast CF	multiselect	finlist.internalaccounts.accountnumber	operationaliban
+11	Data scadenta (Maturity date)	MaturityDate	M	N	Input Forecast CF	date		maturitydate
+13	Data Cashflow forecast (Cashflow forecast date)	CFForecastDate	M	N	Output Forecast CF	date		cfforecastdate
+\.
+
+
+--
+-- TOC entry 4426 (class 0 OID 62845)
+-- Dependencies: 232
+-- Data for Name: reportingtxstates; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.reportingtxstates (status, description, id) FROM stdin;
+New		8
+In process		12
+Waiting for Technical Investigation		13
+Waiting for Business Investigation		14
+Waiting for Authorization		16
+Completed - Sent		17
+Waiting for Duplicates Investigation		15
+Completed - Suspended (reason: others)	\N	20
+Completed - Suspended (reason: duplicate)		21
+Completed - Rejected (reason: others)	\N	19
+Completed - Rejected (reason: duplicate)		18
+Completed - Suspended (reason: flow)	\N	22
+\.
+
+
+--
+-- TOC entry 4427 (class 0 OID 62848)
+-- Dependencies: 233
+-- Data for Name: reportmessagecriteria; Type: TABLE DATA; Schema: fincfg; Owner: postgres
+--
+
+COPY fincfg.reportmessagecriteria (id, label, displayorder, messagetypesbusinessarea, type, datasource, field, masterlabel) FROM stdin;
+3	Reference	4	Payments	string		reference	Transaction details
+17	Beneficiary BIC	17	Payments	multiselect	finlist.externalaccounts.bankbic	beneficiarybank	Payment
+8	Amount	8	Payments	number,number		amount	Amount
+25	Entity	7	Statements	multiselect	finlist.internalentities.name	name	Statement
+18	Source	18	Payments	string		sourcefilename	Transaction details
+19	Destination	19	Payments	string		destinationfilename	Transaction details
+11	Accounting	11	Payments	multiselect	finlist.accountingcodes.code	accountingcode	Codes
+12	Location	12	Payments	multiselect	finlist.locationcodes.code	locationcode	Codes
+1	Date created	1	Payments	datetime,datetime		insertdate	Transaction details
+102	Type	2	Events	multiselect	["Error","Info", "Management","Warning"]	type	Event
+32	Date created	1	Invoices	datetime,datetime		insertdate	Invoice
+33	Direction	2	Invoices	multiselect	["Issued","Received"]	invoicetype	Transaction details
+4	Original ID	3	Payments	string		endtoendid	Transaction details
+13	Budget	13	Payments	multiselect	finlist.budgetcodes.code	budgetcode	Codes
+34	Reference	3	Invoices	string		reference	Transaction details
+35	Seller	4	Invoices	multiselect	finlist.externalinternalentities.name	cdtcustomername	Invoice
+36	Buyer	5	Invoices	multiselect	finlist.externalinternalentities.name	dbtcustomername	Invoice
+37	Number	6	Invoices	string		invoiceno	Invoice
+38	Serial	7	Invoices	string		invoiceserial	Invoice
+39	Amount	8	Invoices	number,number		amount	Amount
+40	Currency	9	Invoices	multiselect	finlist.internalaccounts.currency	currency	Amount
+10	Execution date	10	Payments	date		valuedate	Transaction details
+23	Number	5	Statements	string		statementnumber	Transaction details
+24	Reference	6	Statements	string		statementreference	Transaction details
+107	Machine	7	Events	string		machine	Event
+28	Amount	10	Statements	number,number		amount	Amount
+101	Event date	1	Events	datetime,datetime		eventdate	Event
+30	Value Date	12	Statements	date		valuedate	Transaction details
+20	Date created	1	Statements	datetime,datetime		insertdate	Transaction details
+21	Source	2	Statements	string		sourcefilename	Transaction details
+22	Open balance date	3	Statements	date		openbalancedate	Statement
+31	Close balance date	4	Statements	date		closebalancedate	Statement
+5	Payer	5	Payments	multiselect	finlist.internalentities.name	dbtcustomername	Transaction details
+26	Account	8	Statements	multiselect	finlist.internalaccounts.accountnumber	accountnumber	Statement
+15	Beneficiary	15	Payments	multiselect	finlist.externalentities.name	cdtcustomername	Transaction details
+27	Credit / Debit	9	Statements	multiselect	["CRDT","DBIT"]	trxmark	Statement
+16	Beneficiary account	16	Payments	multiselect	finlist.externalaccounts.accountnumber	cdtaccount	Transaction details
+109	Event ID	9	Events	string		guid	Event
+29	Currency	11	Statements	multiselect	finlist.internalaccounts.currency	currency	Amount
+9	Currency	9	Payments	multiselect	finlist.internalaccounts.currency	currency	Amount
+106	Event class	6	Events	multiselect	findata.repevents.class	class	Event
+7	Payer BIC	7	Payments	multiselect	finlist.internalaccounts.bankbic	orderingbank	Payment
+6	Payer account	6	Payments	multiselect	finlist.internalaccounts.accountnumber	dbtaccount	Transaction details
+14	Status	14	Payments	multiselect	fincfg.reportingtxstates.status	status	Transaction details
+103	User	3	Events	multiselect	fincfg.users.username	username	Event
+104	Service	4	Events	multiselect	findata.repevents.service	service	Event
+105	Action type	5	Events	multiselect	findata.repevents.actiontype	actiontype	Event
+108	Message	8	Events	string		message	Event
+\.
+
+
+--
+-- TOC entry 4428 (class 0 OID 62854)
+-- Dependencies: 234
+-- Data for Name: reportmessageresults; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.reportmessageresults (id, label, field, displayorder, messagetypesbusinessarea, defaultfield, fieldtype) FROM stdin;
+17	Beneficiary account	cdtaccount	17	Payments	0	string
+18	Beneficiary BIC	beneficiarybank	18	Payments	0	string
+19	Source	sourcefilename	19	Payments	0	string
+23	Source	sourcefilename	2	Statements	0	string
+24	Open balance date/Close balance date	statementdate	3	Statements	0	date
+25	Number	statementnumber	4	Statements	0	string
+26	Reference	statementreference	5	Statements	1	string
+27	Entity	name	6	Statements	1	string
+28	Account	accountnumber	7	Statements	1	string
+29	Credit / Debit	trxmark	8	Statements	0	string
+31	Currency	currency	10	Statements	1	string
+32	Value Date	valuedate	11	Statements	0	date
+33	Details	remittanceinfo	12	Statements	0	string
+22	Date created	insertdatech	1	Statements	1	datetime
+102	Event type	type	2	Events	0	string
+15	Current Queue	queuename	15	Payments	0	string
+14	Status	status	14	Payments	0	string
+21	Details	remittanceinfo	21	Payments	0	string
+2	Transaction Type	messagetype	2	Payments	1	string
+3	Original ID	endtoendid	3	Payments	0	string
+4	Reference	reference	4	Payments	0	string
+5	Payer	dbtcustomername	5	Payments	1	string
+6	Payer account	dbtaccount	6	Payments	0	string
+7	Payer BIC	orderingbank	7	Payments	0	string
+9	Currency	currency	9	Payments	1	string
+10	Execution Date	valuedate	10	Payments	0	date
+20	Destination	destinationfilename	20	Payments	0	string
+1	Date created	insertdate	1	Payments	1	datetime
+34	Date created	insertdate	1	Invoices	1	datetime
+35	Direction	invoicetype	2	Invoices	0	string
+36	Reference	reference	3	Invoices	1	string
+11	Accounting	accountingcode	11	Payments	0	string
+12	Budget	budgetcode	12	Payments	0	string
+13	Location	locationcode	13	Payments	0	string
+16	Beneficiary	cdtcustomername	16	Payments	1	string
+37	Seller	cdtcustomername	4	Invoices	1	strig
+38	Buyer	dbtcustomername	5	Invoices	1	string
+39	Number	invoiceno	6	Invoices	0	string
+40	Serial	invoiceserial	7	Invoices	0	string
+41	Amount	amount	8	Invoices	1	number
+42	Currency	currency	9	Invoices	1	string
+44	Seller Account	cdtaccount	11	Invoices	0	string
+45	Maturity date	maturitydate	12	Invoices	0	date
+30	Amount	amount	9	Statements	1	number
+8	Amount	amount	8	Payments	1	number
+104	Service	service	4	Events	0	string
+105	Action type	actiontype	5	Events	0	string
+106	Event class	class	6	Events	0	string
+107	Machine	machine	7	Events	0	string
+108	Message	message	8	Events	0	string
+101	Event date	eventdate	1	Events	0	datetime
+109	Event ID	guid	9	Events	0	string
+112	Queue name	queuename	3	Outstanding	0	string
+111	Source application	requestorservice	1	Outstanding	0	string
+113	Status	status	2	Outstanding	0	string
+43	Original Reference	originalreference	10	Invoices	0	string
+103	User	username	3	Events	0	number
+\.
+
+
+--
+-- TOC entry 4429 (class 0 OID 62857)
+-- Dependencies: 235
+-- Data for Name: roles; Type: TABLE DATA; Schema: fincfg; Owner: postgres
+--
+
+COPY fincfg.roles (id, name, category, userdefined, listofactions, listofentities) FROM stdin;
+1	Configuration Lists	Application Administration	0	view,modify	\N
+2	Routing Rules	Application Administration	0	view,modify	\N
+3	Queues	Application Administration	0	view,modify	\N
+4	Events	Application Administration	0	view	\N
+5	Users	User Administration	0	modify	\N
+13	API Interface	Applicattion Administration	0	view,modify	t
+15	Static Balance Sheet Reports	Balance Sheet	0	view,modify	t
+16	KPI &  dynamic Reports	Balance Sheet	0	view	t
+2102	POWER	\N	1	\N	\N
+7	Internal Account List	Business Administration	0	view,modify	t
+6	Internal Entities List	Business Administration	0	view,modify	t
+8	Banks List	Business Administration	0	view,modify	t
+9	Reconciliation	Reconciliation	0	view,modify	f
+99	Insert Cash Reporting information	Cash Reporting	0	view,modify	t
+100	Forecast & Comparison Reports	Cash Reporting	0	view	t
+2152	TENAInvoice	\N	1	\N	\N
+1653	Supervise	Application Administration	0	modify	\N
+\.
+
+
+--
+-- TOC entry 4430 (class 0 OID 62860)
+-- Dependencies: 236
+-- Data for Name: routingkeywordmaps; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.routingkeywordmaps (routingkeywordid, tag, messagetype, selector, id) FROM stdin;
+101	//x:FinInvc/x:TradSttlm/x:PmtRef/text()	FinInvc	selectoriso	330
+112	//x:FinInvc/x:TradAgrmt/x:Sellr/x:PtyId/x:Nm/text()	FinInvc	selectoriso	331
+113	//x:FinInvc/x:TradAgrmt/x:Buyr/x:PtyId/x:Nm/text()	FinInvc	selectoriso	332
+109	//x:FinInvc/x:TradAgrmt/x:Buyr/x:PtyId/x:Nm/text()	FinInvc	selectoriso	333
+110	//x:FinInvc/x:TradAgrmt/x:Sellr/x:PtyId/x:Nm/text()	FinInvc	selectoriso	334
+158	//x:FinInvc/x:InvcHdr/x:Id/text()	FinInvc	selectoriso	335
+159	//x:FinInvc/x:InvcHdr/x:TpCd/text()	FinInvc	selectoriso	336
+103	//x:FinInvc/x:TradSttlm/x:DuePyblAmt/text()	FinInvc	selectoriso	337
+104	//x:FinInvc/x:TradSttlm/x:DuePyblAmt/@Ccy	FinInvc	selectoriso	338
+124	//x:FinInvc/x:TradSttlm/x:CdtrRef/x:Ref/text()	FinInvc	selectoriso	339
+106	//x:FinInvc/x:TradSttlm/x:PmtMeans/x:PyeeCdtrAcct/x:Id/x:IBAN/text()|//x:FinInvc/x:TradSttlm/x:PmtMeans/x:PyeeCdtrAcct/x:Id/x:Othr/x:Id/text()	FinInvc	selectoriso	340
+128	//x:FinInvc/x:TradSttlm/x:PmtTerms/x:DueDt/text()	FinInvc	selectoriso	341
+132	//x:FinInvc/x:InvcHdr/x:IsseDtTm/text()	FinInvc	selectoriso	342
+160	//x:FinInvc/x:InvcHdr/x:InvType/text()	FinInvc	selectoriso	343
+101	//x:Ntfctn/x:Ntry/x:NtryRef/text()	BkToCstmrDbtCdtNtfctn	selectoriso	315
+108	//x:CdtTrfTxInf/x:CdtrAgt/x:FinInstnId/x:BICFI/text()	CstmrCdtTrfInitnSala	selectoriso	244
+107	//x:PmtInf/x:DbtrAgt/x:FinInstnId/x:BICFI/text()	CstmrCdtTrfInitnSala	selectoriso	235
+102	//x:PmtInf/x:ReqdExctnDt/x:Dt/text()	CstmrCdtTrfInitnSala	selectoriso	238
+101	//x:CdtTrfTxInf/x:TrxRef/text()	CstmrCdtTrfInitnSala	selectoriso	230
+112	//x:PmtInf/x:Dbtr/x:Nm/text()	CstmrCdtTrfInitnSala	selectoriso	231
+113	//x:CdtTrfTxInf/x:Cdtr/x:Nm/text()	CstmrCdtTrfInitnSala	selectoriso	232
+109	//x:PmtInf/x:Dbtr/x:Nm/text()	CstmrCdtTrfInitnSala	selectoriso	233
+105	//x:PmtInf/x:DbtrAcct/x:Id/x:IBAN/text()|//x:PmtInf/x:DbtrAcct/x:Id/x:Othr/x:Id/text()	CstmrCdtTrfInitnSala	selectoriso	234
+103	//x:CdtTrfTxInf/x:Amt/x:InstdAmt/text()	CstmrCdtTrfInitnSala	selectoriso	236
+104	//x:CdtTrfTxInf/x:Amt/x:InstdAmt/@Ccy	CstmrCdtTrfInitnSala	selectoriso	237
+153	//x:CdtTrfTxInf/x:AcctCode/text()	CstmrCdtTrfInitnSala	selectoriso	239
+154	//x:CdtTrfTxInf/x:LocCode/text()	CstmrCdtTrfInitnSala	selectoriso	240
+155	//x:CdtTrfTxInf/x:BgtCode/text()	CstmrCdtTrfInitnSala	selectoriso	241
+110	//x:CdtTrfTxInf/x:Cdtr/x:Nm/text()	CstmrCdtTrfInitnSala	selectoriso	242
+106	//x:CdtTrfTxInf/x:CdtrAcct/x:Id/x:IBAN/text()|//x:CdtTrfTxInf/x:CdtrAcct/x:Id/x:Othr/x:Id/text()	CstmrCdtTrfInitnSala	selectoriso	243
+157	//x:CdtTrfTxInf/x:RmtInf/x:Ustrd/text()	CstmrCdtTrfInitnSala	selectoriso	245
+156	//x:CdtTrfTxInf/x:PmtId/x:EndToEndId/text()	CstmrCdtTrfInitnSala	selectoriso	246
+112	//x:Ntfctn/x:Acct/x:Svcr/x:FinInstnId/x:Nm/text()	BkToCstmrDbtCdtNtfctn	selectoriso	316
+113	//x:Ntfctn/x:Acct/x:Ownr/x:Nm/text()	BkToCstmrDbtCdtNtfctn	selectoriso	317
+136	//x:Ntfctn/x:ElctrncSeqNb/text()	BkToCstmrDbtCdtNtfctn	selectoriso	319
+145	//x:Ntfctn/x:Ntry/x:CdtDbtInd/text()	BkToCstmrDbtCdtNtfctn	selectoriso	320
+102	//x:Ntfctn/x:Ntry/x:ValDt/x:Dt/text()	BkToCstmrDbtCdtNtfctn	selectoriso	321
+139	//x:Ntfctn/x:FrToDt/x:FrDtTm/text()	BkToCstmrDbtCdtNtfctn	selectoriso	322
+135	//x:Ntfctn/x:Acct/x:Id/x:IBAN/text()|//x:Ntfctn/x:Acct/x:Id/x:Othr/x:Id/text()	BkToCstmrDbtCdtNtfctn	selectoriso	318
+140	//x:Ntfctn/x:FrToDt/x:ToDtTm/text()	BkToCstmrDbtCdtNtfctn	selectoriso	323
+137	//x:GrpHdr/x:MsgId/text()	BkToCstmrDbtCdtNtfctn	selectoriso	324
+157	//x:Ntfctn/x:Ntry/x:AddtlNtryInf/text()	BkToCstmrDbtCdtNtfctn	selectoriso	329
+147	//x:Ntfctn/x:Acct/x:Ownr/x:Nm/text()	BkToCstmrDbtCdtNtfctn	selectoriso	325
+103	//x:Ntfctn/x:Ntry/x:Amt/text()	BkToCstmrDbtCdtNtfctn	selectoriso	327
+104	//x:Ntfctn/x:Ntry/x:Amt/@Ccy	BkToCstmrDbtCdtNtfctn	selectoriso	328
+\.
+
+
+--
+-- TOC entry 4431 (class 0 OID 62866)
+-- Dependencies: 237
+-- Data for Name: routingkeywords; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.routingkeywords (id, name, comparer, selector, description, selectoriso) FROM stdin;
+116	Rate	string	(?<value>.*)	Exchange rate / Debt rate	(?<value>.*)
+117	TTC	string	(?<value>.*)	Transaction type code	(?<value>.*)
+122	RecAgSen	string	(?<value>[A-Z 0-9]{8})	\N	(?<value>.*)
+123	RecAgRec	string	(?<value>[A-Z 0-9]{8})	\N	(?<value>.*)
+101	Reference	string	(?<value>.*)	Reference	(?<value>.*)
+104	Currency	string	(?<value>[A-Z]{3})	Currency	(?<value>[A-Z]{3})
+115	TradeDate	string	(?<value>d{6,8})	Trade date	(?<value>.*)
+111	Service	string	(?<value>.*)	Service	(?<value>.*)
+147	Name	string	(?<value>.*)	Transaction client name	(?<value>.*)
+149	Account	string	(?<value>.*)	Transaction account	(?<value>.*)
+150	AccountGL	string	(?<value>.*)	Transaction account GL	(?<value>.*)
+151	Branch	string	(?<value>.*)	Transaction source branch	(?<value>.*)
+152	SourceFileName	string	(?<value>.*)	Transaction source filename	(?<value>.*)
+156	EndToEndId	string	(?<value>.*)	End to End Identifier	(?<value>.*)
+108	BeneficiaryBank	string	(?<value>[A-Z 0-9]{8})	Beneficiary Bank	(?<value>[A-Z 0-9]{8})
+114	OperationType	string	(?<value>.*)	Operation type ..	(?<value>.*)
+118	FirstAmount	string	(?<value>.*)	Treasury: party A amount	(?<value>.*)
+119	FirstCurrency	string	(?<value>[A-Z]{3})	Treasury: party A amount currency	(?<value>.*)
+120	SecondAmount	string	(?<value>.*)	Treasury: party B amount	(?<value>.*)
+121	SecondCurrency	string	(?<value>[A-Z]{3})	Treasury: party B amount currency	(?<value>.*)
+124	OriginalReference	string	(?<value>.*)	Original transaction reference	(?<value>.*)
+125	OriginalBatchID	string	(?<value>.*)	Original batch identifier	(?<value>.*)
+126	RelatedReference	string	(?<value>.*)	Related transaction reference	(?<value>.*)
+127	ReasonCode	string	(?<value>.*)	Reason code	(?<value>.*)
+128	MaturityDate	date	(?<value>.*)	Maturity Date	(?<value>.*)
+134	OriginalInstructedID	string	(?<value>.*)	Original Instructed ID	(?<value>.*)
+136	StatementNumber	string	(?<value>.*)	Statement number	(?<value>.*)
+137	StatementReference	string	(?<value>.*)	Statement reference	(?<value>.*)
+138	TrxNumber	string	(?<value>.*)	Statement tx number	(?<value>.*)
+141	OpenBalancemark	string	(?<value>^[DC]{1})	Opening balance C/D mark	(?<value>.*)
+142	CloseBalanacemark	string	(?<value>^[DC]{1})	Closing balance C/D mark	(?<value>.*)
+145	TrxMark	string	(?<value>.*)	Transaction C/D mark	(?<value>.*)
+146	StatementUID	string	(?<value>.*)	Internal statement unique id	(?<value>.*)
+148	PhoneNumber	string	(?<value>.*)	Transction client phone number	(?<value>.*)
+153	AccountingCode	string	(?<value>.*)	Account Code	(?<value>.*)
+154	LocationCode	string	(?<value>.*)	Location code	(?<value>.*)
+155	BudgetCode	string	(?<value>.*)	Budget Code	(?<value>.*)
+157	RemittanceInfo	string	(?<value>.*)	Remittance Information	(?<value>.*)
+140	CloseBalancedate	date	(?<value>\\134d{6,8})	Closing balance date	(?<value>\\d{6,8}|\\d{4}[-]\\d{2}[-]\\d{2})
+135	AccountNumber	string	[^\\/]*\\/(?<value>\\w+)	Account Number	(?<value>.*)
+133	CdtID	string	(?:[^\\n]*\\n)*(?<value>.*)$	Creditor ID	(?<value>.*)
+129	DbtID	string	(?:[^\\n]*\\n)*(?<value>.*)$	Debtor ID	(?<value>.*)
+132	IssuanceDate	date	(?<value>\\d{6,8})	Issuance Date	(?<value>.*)
+143	OpenBalanceamount	string	(?<value>[\\d,\\.]{1,})$	Opening balance amount	(?<value>.*)
+139	OpenBalancedate	date	(?<value>\\d{6,8})	Opening balance date	(?<value>\\d{6,8}|\\d{4}[-]\\d{2}[-]\\d{2})
+102	ValueDate	string	(?<value>\\d{6,8})	Value Date	(?<value>\\d{6,8}|\\d{4}[-]\\d{2}[-]\\d{2})
+103	Amount	string	(?<value>[\\d,\\.]{1,})$	Amount	(?<value>[\\d,\\.]{1,})$
+106	CdtAccount	string	[^\\/]*\\/(?<value>\\w+)	Creditor Account	(?<value>.*)
+105	DbtAccount	string	[^\\/]*\\/(?<value>\\w+)	Debtor Account	(?<value>.*)
+110	CdtCustomerName	string	[^\\n]*\\n(?<value>[^\\n]*)[\\n]*.*	Creditor Customer Name	(?<value>.*)
+109	DbtCustomerName	string	[^\\n]*\\n(?<value>[^\\n]*)\\n.*	Debtor Customer Name	(?<value>.*)
+144	CloseBalanceamount	string	(?<value>[\\d,\\.]{1,})$	Closing balance amount	(?<value>.*)
+107	OrderingBank	string	(?<value>[A-Z 0-9]{8})	Ordering Bank	(?<value>[A-Z 0-9]{8})
+158	InvoiceNo	string	(?<value>.*)	Invoice number	(?<value>.*)
+159	InvoiceSerial	string	(?<value>.*)	Invoice serial	(?<value>.*)
+160	InvoiceType	string	(?<value>.*)	Invoice type	(?<value>.*)
+112	Sender	string	(?<value>.*)	Sender	(?<value>.*)
+113	Receiver	string	(?<value>.*)	Receiver	(?<value>.*)
+\.
+
+
+--
+-- TOC entry 4432 (class 0 OID 62872)
+-- Dependencies: 238
+-- Data for Name: routingrules; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.routingrules (id, queueid, routingschemaid, sequence, ruletype, description, messagecondition, functioncondition, metadatacondition, action) FROM stdin;
+903	901	24853	1	0	transform to ISO Allevo format				TransformMessage(BODBToISOAlv.Invoices.xslt)
+905	902	24853	1	0	transform to ISO Allevo format				TransformMessage(BODBToISOAlv.Invoices.xslt)
+2454	200	24705	2	0	complete				Complete
+1102	1052	24708	2	0	eliminate last line from BISS csv	Keyword Reference ==			MoveTo(InvestigInQueue)
+1053	1052	24708	3	0	move to auth				MoveTo(BOStatementsInQueue)
+517	209	24708	3	0	move to queue				MoveTo(BOStatementsInQueue)
+516	209	24708	1	0	transform to Allevo internal format				TransformMessage(MappingWithEnrichEnv.xslt)
+1212	209	24708	2	0	Aggregate				Aggregate
+1051	1001	24705	1	0	complete				Complete
+651	103	24803	1	0	Complete Transactions				Complete
+1809	1808	24708	20	0	mobe to bo				MoveTo(BOStatementsInQueue)
+1501	1204	24853	1	0	complete				Complete
+1503	1205	24853	1	0	complete				Complete
+1810	1808	24708	10	0	iinsert in db				TransformMessage(PSD2ToISOAlv.xslt)
+2852	902	24853	5	0	complete				Complete
+518	210	24708	3	0	transform to BO DB format				TransformMessage(ISOAlvToBODB.Statements.xslt)
+2851	901	24853	5	0	complete				Complete
+501	200	24705	1	0	transform to ISO Allevo  format				TransformMessage(BODBToISOAlv.xslt)
+\.
+
+
+--
+-- TOC entry 4433 (class 0 OID 62878)
+-- Dependencies: 239
+-- Data for Name: routingrulesactions; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.routingrulesactions (id, label, displayorder, type, datasource) FROM stdin;
+1	Aggregate	1	\N	\N
+4	ChangeValueDate	4	\N	\N
+12	UpdateLiquidities	12	\N	\N
+5	Complete	3		
+10	SendReply	4	dropdown	fincfg.queues.name
+8	MoveTo	5	dropdown	fincfg.queues.name
+11	TransformMessage	6	string	
+2	Assemble	7	string	
+6	Disassemble	8	string	
+13	WaitOn	9	string	
+9	ReleaseQueue	10		
+7	HoldQueue	11		
+3	ChangeHoldStatus	2	dropdown	["true","false"]
+14	Enrich	13	string	\N
+15	Audit	2	\N	\N
+\.
+
+
+--
+-- TOC entry 4434 (class 0 OID 62884)
+-- Dependencies: 240
+-- Data for Name: routingschemas; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.routingschemas (name, description, active, id, timelimitid1, timelimitid2, sessioncode, visible) FROM stdin;
+Payments	Payments processing	1	24705	1	2	PAYM	
+Dummy Schema	Start-Stop app	\N	25053	38604	38605		\N
+Complete	Schema de Complete 	\N	24803	1	2	COMP	\N
+Statements	Statements processing	\N	24708	1	2	STMT	\N
+Invoices	Invoices processing	\N	24853	1	2	INV	\N
+\.
+
+
+--
+-- TOC entry 4435 (class 0 OID 62887)
+-- Dependencies: 241
+-- Data for Name: servicemaps; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.servicemaps (name, id, status, lastsessionid, heartbeatinterval, lastheartbeat, version, partner, servicetype, ioidentifier, exitpoint, sessionid, duplicatecheck, duplicatequeue, duplicatemap, duplicatenotificationqueue, delayednotificationqueue) FROM stdin;
+EventsWatcher	1	3	0	0	2014-01-17 15:22:00	\N	Events Watcher Service	3	\N		619ca4b3-c8595082-71e10001	\N				
+BOInvoicesIssuedOut	300	3	0	0	\N	\N	Invoices Connector Service	1	\N	\N	619ca443-fb655082-a6f10001	1	InvoicesIssuedDupOutQueue	getHash.Invoices.xslt		
+RoutingEngine	3	3	0	0	2014-01-17 15:22:00.68		Routing Engine	2	\N		619ca19b-b4215082-55a70001	\N	\N	\N	\N	\N
+StatementsIn	204	3	0	0	\N	\N	Statements Connector Service	1	\N	\N	619ca19f-69c85082-026e0001	1	StatementsDupInQueue	getHash.Statements.xslt		
+StatementsAPIINGIn	403	3	0	0	\N	\N	API connect Statements Connector service	1	\N	\N	619ca1a3-36ce5082-d8590001	\N	\N	\N	\N	\N
+FinTPDB000	10	3	0	0	2014-01-17 15:22:01.09		Message collector service	2	\N		619ca43f-53495082-7ba80001	\N	\N	\N	\N	\N
+BOPaymentsOut	202	3	0	0	\N	\N	Payments Connector Service	1	\N	Q=PAYMINTERNAL.TOCONNECTOR;QM=amq;CH=tcp://localhost:61616;MQT=AMQ	619ca440-2f455082-e8560001	1	PaymentsDupOutQueue	getHash.Payments.xslt		
+BOStatementsOut	203	3	0	0	\N	\N	Statements Connector Service	1	\N	Q=STMINTERNAL.TOCONNECTOR;QM=amq;CH=tcp://localhost:61616;MQT=AMQ	619ca441-28425082-61db0001	\N				
+BOInvoicesReceivedOut	301	3	0	0	\N	\N	Invoices Connector Service	1	\N	\N	619ca442-fa835082-00200001	1	InvoicesReceivedDupOutQueue	getHash.Invoices.xslt		
+\.
+
+
+--
+-- TOC entry 4436 (class 0 OID 62893)
+-- Dependencies: 242
+-- Data for Name: timelimits; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.timelimits (id, name, cutoff) FROM stdin;
+38604	Dummy Start	1970-01-01 00:00:00
+38605	Dummy Stop	1970-01-01 23:59:59
+1	Start app	1970-01-01 09:00:00
+3	Start EOD	1970-01-01 17:50:00
+2	Stop app	1970-01-01 18:25:00
+\.
+
+
+--
+-- TOC entry 4445 (class 0 OID 183099)
+-- Dependencies: 292
+-- Data for Name: txtemplates; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.txtemplates (id, configid, name, entity, userid, type) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4446 (class 0 OID 183106)
+-- Dependencies: 293
+-- Data for Name: txtemplatesconfig; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+--
+-- TOC entry 4437 (class 0 OID 62896)
+-- Dependencies: 243
+-- Data for Name: useractioncodes; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.useractioncodes (useractionid, code, label, description, id) FROM stdin;
+600	PDM10	duplicate		100
+600	FTP19	others	\N	200
+100	PDM00	duplicate	\N	300
+100	FTP09	others	\N	400
+\.
+
+
+--
+-- TOC entry 4438 (class 0 OID 62899)
+-- Dependencies: 244
+-- Data for Name: useractionmaps; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.useractionmaps (id, queuetypeid, useractionid, messagetype) FROM stdin;
+1000	5	300	FinInvc
+1010	2	100	FinInvc
+6	2	600	CstmrCdtTrfInitnSala
+15	2	600	CstmrCdtTrfInitnTaxs
+2	5	600	CstmrCdtTrfInitnSala
+11	5	600	CstmrCdtTrfInitnTaxs
+1001	5	100	FinInvc
+5	3	600	CstmrCdtTrfInitnSala
+14	3	600	CstmrCdtTrfInitnTaxs
+452	2	600	Undefined
+1	5	300	CstmrCdtTrfInitnSala
+4	3	300	CstmrCdtTrfInitnSala
+7	6	400	CstmrCdtTrfInitnSala
+9	6	200	CstmrCdtTrfInitnSala
+10	5	300	CstmrCdtTrfInitnTaxs
+13	3	300	CstmrCdtTrfInitnTaxs
+16	6	400	CstmrCdtTrfInitnTaxs
+18	6	200	CstmrCdtTrfInitnTaxs
+19	5	300	CstmrCdtTrfInitnSupp
+22	3	300	CstmrCdtTrfInitnSupp
+25	6	400	CstmrCdtTrfInitnSupp
+27	6	200	CstmrCdtTrfInitnSupp
+28	5	300	CstmrCdtTrfInitnVatx
+34	6	400	CstmrCdtTrfInitnVatx
+36	6	200	CstmrCdtTrfInitnVatx
+37	5	300	CstmrCdtTrfInitnOthr
+40	3	300	CstmrCdtTrfInitnOthr
+43	6	400	CstmrCdtTrfInitnOthr
+45	6	200	CstmrCdtTrfInitnOthr
+47	6	300	BkToCstmrDbtCdtNtfctn
+48	3	300	BkToCstmrDbtCdtNtfctn
+49	3	600	BkToCstmrDbtCdtNtfctn
+50	5	300	BkToCstmrDbtCdtNtfctn
+999	3	700	CstmrCdtTrfInitnSala
+998	3	700	CstmrCdtTrfInitnTaxs
+995	3	700	CstmrCdtTrfInitnOthr
+32	3	700	CstmrCdtTrfInitnVatx
+24	2	600	CstmrCdtTrfInitnSupp
+33	2	600	CstmrCdtTrfInitnVatx
+42	2	600	CstmrCdtTrfInitnOthr
+20	5	600	CstmrCdtTrfInitnSupp
+29	5	600	CstmrCdtTrfInitnVatx
+38	5	600	CstmrCdtTrfInitnOthr
+23	3	600	CstmrCdtTrfInitnSupp
+41	3	600	CstmrCdtTrfInitnOthr
+51	5	600	BkToCstmrDbtCdtNtfctn
+46	2	600	BkToCstmrDbtCdtNtfctn
+996	3	700	CstmrCdtTrfInitnSupp
+123	3	600	CstmrCdtTrfInitnVatx
+321	3	300	CstmrCdtTrfInitnVatx
+\.
+
+
+--
+-- TOC entry 4439 (class 0 OID 62902)
+-- Dependencies: 245
+-- Data for Name: useractions; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.useractions (id, name, label, currentmessage, selectedmessage, groupmessage, priority, location, codeselection, function, detailsinput) FROM stdin;
+700	Edit	Edit	0	1	0	50	queues	\N	\N	\N
+400	Investigate	Investigate	0	1	0	50	queues	0	\N	1
+300	Route	Authorize	0	1	0	70	queues	0	\N	0
+200	Batch	Authorize	0	0	1	70	queues	0	\N	0
+100	Reject	Reject	0	1	0	80	queues	1		1
+600	Suspend	Suspend	0	1	0	50	queues	1		1
+\.
+
+--
+-- TOC entry 4452 (class 0 OID 2022316)
+-- Dependencies: 330
+-- Data for Name: userrolesentitymaps; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.userrolesentitymaps (id, userid, roleid, entityid) FROM stdin;
+431	2433	8	1802
+422	2433	15	1804
+424	2433	16	1803
+101	2203	13	1803
+427	2433	7	1804
+426	2433	7	1803
+435	2433	99	1803
+428	2433	6	1802
+417	2433	13	1802
+434	2433	99	1802
+433	2433	8	1804
+432	2433	8	1803
+421	2433	15	1803
+439	2433	100	1804
+418	2433	13	1803
+423	2433	16	1802
+425	2433	16	1804
+419	2433	13	1804
+437	2433	100	1802
+438	2433	100	1803
+420	2433	15	1802
+430	2433	6	1804
+436	2433	99	1804
+429	2433	6	1803
+352	2435	13	1804
+351	2435	13	1802
+405	2434	16	1802
+409	2434	6	1802
+412	2434	8	1804
+401	2434	13	1802
+408	2434	7	1804
+411	2434	8	1802
+415	2434	100	1802
+416	2434	100	1804
+404	2434	15	1804
+407	2434	7	1802
+414	2434	99	1804
+406	2434	16	1804
+403	2434	15	1802
+413	2434	99	1802
+402	2434	13	1804
+410	2434	6	1804
+\.
+
+
+--
+-- TOC entry 4441 (class 0 OID 62908)
+-- Dependencies: 247
+-- Data for Name: userrolesmaps; Type: TABLE DATA; Schema: fincfg; Owner: postgres
+--
+
+COPY fincfg.userrolesmaps (id, userid, roleid, action) FROM stdin;
+4415	2434	7	modify
+4426	2434	2102	view
+4419	2434	8	modify
+4420	2434	9	view
+4404	2434	2	modify
+4427	2434	2102	operate
+4418	2434	8	view
+4413	2434	16	view
+4417	2434	6	modify
+4407	2434	4	view
+4410	2434	13	modify
+4414	2434	7	view
+4428	2434	2102	createEdit
+4411	2434	15	view
+4425	2434	1653	modify
+4430	2434	2152	operate
+4416	2434	6	view
+4421	2434	9	modify
+4401	2434	1	view
+4431	2434	2152	createEdit
+4409	2434	13	view
+4406	2434	3	modify
+4429	2434	2152	view
+4412	2434	15	modify
+4402	2434	1	modify
+4422	2434	99	view
+4408	2434	5	modify
+4423	2434	99	modify
+4403	2434	2	view
+4424	2434	100	view
+4405	2434	3	view
+4461	2433	2152	operate
+4434	2433	2	view
+4457	2433	2102	view
+4448	2433	6	modify
+4435	2433	2	modify
+4458	2433	2102	operate
+4441	2433	13	modify
+4446	2433	7	modify
+4454	2433	99	modify
+4432	2433	1	view
+4453	2433	99	view
+4447	2433	6	view
+4462	2433	2152	createEdit
+4440	2433	13	view
+4450	2433	8	modify
+4460	2433	2152	view
+4452	2433	9	modify
+4455	2433	100	view
+4443	2433	15	modify
+4449	2433	8	view
+4436	2433	3	view
+4445	2433	7	view
+4451	2433	9	view
+4444	2433	16	view
+4439	2433	5	modify
+4437	2433	3	modify
+4442	2433	15	view
+4459	2433	2102	createEdit
+4456	2433	1653	modify
+4438	2433	4	view
+4433	2433	1	modify
+4372	2435	99	view
+4376	2435	2102	view
+4365	2435	7	modify
+4364	2435	7	view
+4378	2435	2102	createEdit
+4373	2435	99	modify
+4380	2435	2152	operate
+4361	2435	15	view
+4362	2435	15	modify
+4355	2435	3	view
+4354	2435	2	modify
+4369	2435	8	modify
+4360	2435	13	modify
+4367	2435	6	modify
+4371	2435	9	modify
+4359	2435	13	view
+4366	2435	6	view
+4375	2435	1653	modify
+4351	2435	1	view
+4368	2435	8	view
+4377	2435	2102	operate
+4374	2435	100	view
+4352	2435	1	modify
+4363	2435	16	view
+4379	2435	2152	view
+4370	2435	9	view
+4356	2435	3	modify
+4353	2435	2	view
+4358	2435	5	modify
+4357	2435	4	view
+4381	2435	2152	createEdit
+3755	2615	16	view
+3768	2615	2102	view
+3752	2615	13	modify
+3754	2615	15	modify
+3757	2615	7	modify
+3749	2615	4	view
+3767	2615	1653	modify
+3744	2615	1	modify
+3746	2615	2	modify
+3763	2615	9	modify
+3771	2615	2152	view
+3764	2615	99	view
+3751	2615	13	view
+3762	2615	9	view
+3772	2615	2152	operate
+3765	2615	99	modify
+3758	2615	6	view
+3753	2615	15	view
+3743	2615	1	view
+3773	2615	2152	createEdit
+3759	2615	6	modify
+3750	2615	5	modify
+3770	2615	2102	createEdit
+3745	2615	2	view
+3756	2615	7	view
+3748	2615	3	modify
+3761	2615	8	modify
+3769	2615	2102	operate
+3747	2615	3	view
+3766	2615	100	view
+3760	2615	8	view
+\.
+
+
+--
+-- TOC entry 4443 (class 0 OID 62914)
+-- Dependencies: 249
+-- Data for Name: versions; Type: TABLE DATA; Schema: fincfg; Owner: fincfg
+--
+
+COPY fincfg.versions (servicename, name, version, hash, machine) FROM stdin;
+StatementsBISSIn	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+StatementsCSVINGIn	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+PaymentsPain001APIIn	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+RoutingEngine	FinTP_RoutingEngine	v2.2.7ade39220a2b069c139367e89880a7440932781c		whizzer
+StatementsIn	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+StatementsAPIINGIn	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+FinTPDB000	FinTP_Connector	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+BOPaymentsOut	FinTP_Connector	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+BOStatementsOut	FinTP_Connector	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+BOInvoicesReceivedOut	FinTP_Connector	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+BOInvoicesIssuedOut	FinTP_Connector	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+EventsWatcher	FinTP EventsWatcher	v2.2.58358959c54744f685872c9b32e6bca0046c93d9		whizzer
+PaymentsMT101In	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+PaymentsPain001In	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+FinTPcPaymentsEditedOut	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+FinTPcPaymentsOut	FinTP_Connector	v2.2.ed8d825b87044034505e3ac7f1dfc0215f68716d		whizzer
+\.
+
+
+--
+-- TOC entry 4251 (class 2606 OID 2022481)
+-- Name: configbsandplrepo PK_CONFIGBS_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.configbsandplrepo
+    ADD CONSTRAINT "PK_CONFIGBS_NAME" PRIMARY KEY (name, reportingcategory);
+
+
+--
+-- TOC entry 4165 (class 2606 OID 84989)
+-- Name: idgenlist PK_IDGEN_TCN; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.idgenlist
+    ADD CONSTRAINT "PK_IDGEN_TCN" PRIMARY KEY (tabcolname);
+
+
+--
+-- TOC entry 4167 (class 2606 OID 84991)
+-- Name: messagetypes PK_MT_MSGTYPE; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.messagetypes
+    ADD CONSTRAINT "PK_MT_MSGTYPE" PRIMARY KEY (messagetype);
+
+
+--
+-- TOC entry 4171 (class 2606 OID 84993)
+-- Name: nonbussdayscalendar PK_NBDC_NBD; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.nonbussdayscalendar
+    ADD CONSTRAINT "PK_NBDC_NBD" PRIMARY KEY (nonbusinessdate);
+
+
+--
+-- TOC entry 4233 (class 2606 OID 2012013)
+-- Name: params PK_PARAMS_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.params
+    ADD CONSTRAINT "PK_PARAMS_NAME" PRIMARY KEY (name, category) WITH (fillfactor='100');
+
+
+--
+-- TOC entry 4174 (class 2606 OID 85021)
+-- Name: queuemessagetrxheader PK_QMSGTXHDR_FNMSGT; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuemessagetrxheader
+    ADD CONSTRAINT "PK_QMSGTXHDR_FNMSGT" PRIMARY KEY (routingkeywordname, messagetype);
+
+
+--
+-- TOC entry 4176 (class 2606 OID 85023)
+-- Name: queues PK_Q_QID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queues
+    ADD CONSTRAINT "PK_Q_QID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4195 (class 2606 OID 85025)
+-- Name: routingkeywordmaps PK_RKM_MAPID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingkeywordmaps
+    ADD CONSTRAINT "PK_RKM_MAPID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4197 (class 2606 OID 85027)
+-- Name: routingkeywords PK_RK_KEYWORDID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingkeywords
+    ADD CONSTRAINT "PK_RK_KEYWORDID" PRIMARY KEY (id);
+
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 4191 (class 2606 OID 85029)
+-- Name: roles PK_ROLES_RID; Type: CONSTRAINT; Schema: fincfg; Owner: postgres; Tablespace: fincfgtbs
+--
+
+ALTER TABLE ONLY fincfg.roles
+    ADD CONSTRAINT "PK_ROLES_RID" PRIMARY KEY (id);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4201 (class 2606 OID 85031)
+-- Name: routingrules PK_RR_GUID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingrules
+    ADD CONSTRAINT "PK_RR_GUID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4207 (class 2606 OID 85033)
+-- Name: routingschemas PK_RS_SCHEMAGUID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingschemas
+    ADD CONSTRAINT "PK_RS_SCHEMAGUID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4211 (class 2606 OID 85035)
+-- Name: servicemaps PK_SM_SERVID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.servicemaps
+    ADD CONSTRAINT "PK_SM_SERVID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4215 (class 2606 OID 85037)
+-- Name: timelimits PK_TL_GUID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.timelimits
+    ADD CONSTRAINT "PK_TL_GUID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4229 (class 2606 OID 85039)
+-- Name: userrolesmaps PK_URM_ID; Type: CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.userrolesmaps
+    ADD CONSTRAINT "PK_URM_ID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4221 (class 2606 OID 85041)
+-- Name: useractionmaps PK_USRAM_MAPID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.useractionmaps
+    ADD CONSTRAINT "PK_USRAM_MAPID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4223 (class 2606 OID 85043)
+-- Name: useractions PK_USRA_AID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.useractions
+    ADD CONSTRAINT "PK_USRA_AID" PRIMARY KEY (id);
+
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 4231 (class 2606 OID 85045)
+-- Name: users PK_USR_USERID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+ALTER TABLE ONLY fincfg.users
+    ADD CONSTRAINT "PK_USR_USERID" PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4169 (class 2606 OID 85051)
+-- Name: messagetypes UK_MT_MGT; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+ALTER TABLE ONLY fincfg.messagetypes
+    ADD CONSTRAINT "UK_MT_MGT" UNIQUE (messagetype);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4199 (class 2606 OID 85065)
+-- Name: routingkeywords UK_RK_KEYWORD; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingkeywords
+    ADD CONSTRAINT "UK_RK_KEYWORD" UNIQUE (name);
+
+
+--
+-- TOC entry 4193 (class 2606 OID 85067)
+-- Name: roles UK_ROLES_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.roles
+    ADD CONSTRAINT "UK_ROLES_NAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4203 (class 2606 OID 85071)
+-- Name: routingrules UK_RR_QIDSEQ; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingrules
+    ADD CONSTRAINT "UK_RR_QIDSEQ" UNIQUE (queueid, sequence);
+
+
+--
+-- TOC entry 4209 (class 2606 OID 196042)
+-- Name: routingschemas UK_RS_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingschemas
+    ADD CONSTRAINT "UK_RS_NAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4213 (class 2606 OID 85075)
+-- Name: servicemaps UK_SM_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.servicemaps
+    ADD CONSTRAINT "UK_SM_NAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4217 (class 2606 OID 85077)
+-- Name: timelimits UK_TL_LNAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.timelimits
+    ADD CONSTRAINT "UK_TL_LNAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4243 (class 2606 OID 183133)
+-- Name: txtemplatesconfigdetailed UK_TXTCONFDET_FIELDID; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfigdetailed
+    ADD CONSTRAINT "UK_TXTCONFDET_FIELDID" UNIQUE (fieldid);
+
+
+--
+-- TOC entry 4235 (class 2606 OID 183105)
+-- Name: txtemplates UK_TXTEMPLATES_NAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplates
+    ADD CONSTRAINT "UK_TXTEMPLATES_NAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4225 (class 2606 OID 85081)
+-- Name: useractions UK_USRA_ANAME; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.useractions
+    ADD CONSTRAINT "UK_USRA_ANAME" UNIQUE (name);
+
+
+--
+-- TOC entry 4187 (class 2606 OID 85083)
+-- Name: reportmessagecriteria pk_repcrit_id; Type: CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.reportmessagecriteria
+    ADD CONSTRAINT pk_repcrit_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4255 (class 2606 OID 2031208)
+-- Name: reportcfforcastcriteria pk_reportcfforcastcrit_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.reportcfforcastcriteria
+    ADD CONSTRAINT pk_reportcfforcastcrit_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4185 (class 2606 OID 85085)
+-- Name: reportingtxstates pk_reptxst_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.reportingtxstates
+    ADD CONSTRAINT pk_reptxst_id PRIMARY KEY (id);
+
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 4189 (class 2606 OID 85087)
+-- Name: reportmessageresults pk_rptmsgres_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+ALTER TABLE ONLY fincfg.reportmessageresults
+    ADD CONSTRAINT pk_rptmsgres_id PRIMARY KEY (id);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4205 (class 2606 OID 85089)
+-- Name: routingrulesactions pk_rractions_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingrulesactions
+    ADD CONSTRAINT pk_rractions_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4227 (class 2606 OID 85091)
+-- Name: userdefinedroles pk_udr_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.userdefinedroles
+    ADD CONSTRAINT pk_udr_id PRIMARY KEY (id);
+
+
+SET default_tablespace = findatatbs;
+
+--
+-- TOC entry 4219 (class 2606 OID 85093)
+-- Name: useractioncodes pk_usractcodes_id; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg; Tablespace: findatatbs
+--
+
+ALTER TABLE ONLY fincfg.useractioncodes
+    ADD CONSTRAINT pk_usractcodes_id PRIMARY KEY (id);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4253 (class 2606 OID 2022549)
+-- Name: queuemovemaps queuemovemaps_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuemovemaps
+    ADD CONSTRAINT queuemovemaps_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4181 (class 2606 OID 85095)
+-- Name: queuetypes queuetypes_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuetypes
+    ADD CONSTRAINT queuetypes_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4249 (class 2606 OID 189007)
+-- Name: reportmessagecriteriatemplates reportmessagecriteriatemplates_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.reportmessagecriteriatemplates
+    ADD CONSTRAINT reportmessagecriteriatemplates_pkey PRIMARY KEY (criterionid, templatename);
+
+
+--
+-- TOC entry 4237 (class 2606 OID 183103)
+-- Name: txtemplates txtemplates_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplates
+    ADD CONSTRAINT txtemplates_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4239 (class 2606 OID 183113)
+-- Name: txtemplatesconfig txtemplatesconfig_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfig
+    ADD CONSTRAINT txtemplatesconfig_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4245 (class 2606 OID 183131)
+-- Name: txtemplatesconfigdetailed txtemplatesconfigdetailed_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfigdetailed
+    ADD CONSTRAINT txtemplatesconfigdetailed_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4241 (class 2606 OID 183124)
+-- Name: txtemplatesconfigoptions txtemplatesconfigoptions_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfigoptions
+    ADD CONSTRAINT txtemplatesconfigoptions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4247 (class 2606 OID 183148)
+-- Name: txtemplatesdetailed txtemplatesdetailed_pkey; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesdetailed
+    ADD CONSTRAINT txtemplatesdetailed_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4183 (class 2606 OID 85097)
+-- Name: queuetypes typename_uniq; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuetypes
+    ADD CONSTRAINT typename_uniq UNIQUE (name);
+
+
+--
+-- TOC entry 4179 (class 2606 OID 86110)
+-- Name: queues uk_q_name; Type: CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queues
+    ADD CONSTRAINT uk_q_name UNIQUE (name);
+
+
+SET default_tablespace = fincfgtbs;
+
+--
+-- TOC entry 4177 (class 1259 OID 85188)
+-- Name: test; Type: INDEX; Schema: fincfg; Owner: fincfg; Tablespace: fincfgtbs
+--
+
+CREATE UNIQUE INDEX test ON fincfg.queues USING btree (queuetypeid, messagetypesbusinessarea) WITH (fillfactor='100') WHERE (queuetypeid = 3);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4172 (class 1259 OID 85189)
+-- Name: uk_qmg_mt; Type: INDEX; Schema: fincfg; Owner: fincfg
+--
+
+CREATE UNIQUE INDEX uk_qmg_mt ON fincfg.queuemessagegroups USING btree (messagetype);
+
+
+--
+-- TOC entry 4256 (class 2606 OID 85244)
+-- Name: queuemessagegroups FK_QMSGGRP_MT_MT; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuemessagegroups
+    ADD CONSTRAINT "FK_QMSGGRP_MT_MT" FOREIGN KEY (messagetype) REFERENCES fincfg.messagetypes(messagetype);
+
+
+--
+-- TOC entry 4257 (class 2606 OID 85249)
+-- Name: queues FK_Q_QTYPES_QTYPEID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queues
+    ADD CONSTRAINT "FK_Q_QTYPES_QTYPEID" FOREIGN KEY (queuetypeid) REFERENCES fincfg.queuetypes(id);
+
+
+--
+-- TOC entry 4258 (class 2606 OID 85254)
+-- Name: routingkeywordmaps FK_RKM_MT_MSGTYPE; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingkeywordmaps
+    ADD CONSTRAINT "FK_RKM_MT_MSGTYPE" FOREIGN KEY (messagetype) REFERENCES fincfg.messagetypes(messagetype);
+
+
+--
+-- TOC entry 4259 (class 2606 OID 85259)
+-- Name: routingkeywordmaps FK_RKM_RK_KID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingkeywordmaps
+    ADD CONSTRAINT "FK_RKM_RK_KID" FOREIGN KEY (routingkeywordid) REFERENCES fincfg.routingkeywords(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4260 (class 2606 OID 85264)
+-- Name: routingrules FK_RR_Q_QID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingrules
+    ADD CONSTRAINT "FK_RR_Q_QID" FOREIGN KEY (queueid) REFERENCES fincfg.queues(id);
+
+
+--
+-- TOC entry 4261 (class 2606 OID 85269)
+-- Name: routingrules FK_RR_RS_SCHEMAGUID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingrules
+    ADD CONSTRAINT "FK_RR_RS_SCHEMAGUID" FOREIGN KEY (routingschemaid) REFERENCES fincfg.routingschemas(id);
+
+
+--
+-- TOC entry 4262 (class 2606 OID 85274)
+-- Name: routingschemas FK_RS_TL_START; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingschemas
+    ADD CONSTRAINT "FK_RS_TL_START" FOREIGN KEY (timelimitid1) REFERENCES fincfg.timelimits(id);
+
+
+--
+-- TOC entry 4263 (class 2606 OID 85279)
+-- Name: routingschemas FK_RS_TL_STOP; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.routingschemas
+    ADD CONSTRAINT "FK_RS_TL_STOP" FOREIGN KEY (timelimitid2) REFERENCES fincfg.timelimits(id);
+
+
+--
+-- TOC entry 4272 (class 2606 OID 183134)
+-- Name: txtemplatesconfigdetailed FK_TXTCONFDET_CONFIGID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfigdetailed
+    ADD CONSTRAINT "FK_TXTCONFDET_CONFIGID" FOREIGN KEY (configid) REFERENCES fincfg.txtemplatesconfig(id);
+
+
+--
+-- TOC entry 4273 (class 2606 OID 183139)
+-- Name: txtemplatesconfigdetailed FK_TXTCONFDET_OPTIONID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfigdetailed
+    ADD CONSTRAINT "FK_TXTCONFDET_OPTIONID" FOREIGN KEY (optionid) REFERENCES fincfg.txtemplatesconfigoptions(id);
+
+
+--
+-- TOC entry 4271 (class 2606 OID 183114)
+-- Name: txtemplatesconfig FK_TXTCONF_MSGTYPE; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesconfig
+    ADD CONSTRAINT "FK_TXTCONF_MSGTYPE" FOREIGN KEY (messagetype) REFERENCES fincfg.messagetypes(messagetype);
+
+
+--
+-- TOC entry 4274 (class 2606 OID 183149)
+-- Name: txtemplatesdetailed FK_TXTEMPLATESDET_TEMPLATEID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesdetailed
+    ADD CONSTRAINT "FK_TXTEMPLATESDET_TEMPLATEID" FOREIGN KEY (templateid) REFERENCES fincfg.txtemplates(id);
+
+
+--
+-- TOC entry 4266 (class 2606 OID 85284)
+-- Name: userdefinedroles FK_UDR_IENT_ENAME; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.userdefinedroles
+    ADD CONSTRAINT "FK_UDR_IENT_ENAME" FOREIGN KEY (internalentityname) REFERENCES finlist.internalentities(name);
+
+
+--
+-- TOC entry 4267 (class 2606 OID 85289)
+-- Name: userdefinedroles FK_UDR_MT_MT; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.userdefinedroles
+    ADD CONSTRAINT "FK_UDR_MT_MT" FOREIGN KEY (messagetype) REFERENCES fincfg.messagetypes(messagetype);
+
+
+--
+-- TOC entry 4268 (class 2606 OID 85294)
+-- Name: userdefinedroles FK_UDR_R_ROLEID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.userdefinedroles
+    ADD CONSTRAINT "FK_UDR_R_ROLEID" FOREIGN KEY (roleid) REFERENCES fincfg.roles(id);
+
+
+--
+-- TOC entry 4269 (class 2606 OID 85304)
+-- Name: userrolesmaps FK_URM_R_RID; Type: FK CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.userrolesmaps
+    ADD CONSTRAINT "FK_URM_R_RID" FOREIGN KEY (roleid) REFERENCES fincfg.roles(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4270 (class 2606 OID 85314)
+-- Name: userrolesmaps FK_URM_USR_UID; Type: FK CONSTRAINT; Schema: fincfg; Owner: postgres
+--
+
+ALTER TABLE ONLY fincfg.userrolesmaps
+    ADD CONSTRAINT "FK_URM_USR_UID" FOREIGN KEY (userid) REFERENCES fincfg.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4264 (class 2606 OID 85319)
+-- Name: useractionmaps FK_USRAM_QT_QTYPEID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.useractionmaps
+    ADD CONSTRAINT "FK_USRAM_QT_QTYPEID" FOREIGN KEY (queuetypeid) REFERENCES fincfg.queuetypes(id);
+
+
+--
+-- TOC entry 4265 (class 2606 OID 85324)
+-- Name: useractionmaps FK_USRAM_USRA_AID; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.useractionmaps
+    ADD CONSTRAINT "FK_USRAM_USRA_AID" FOREIGN KEY (useractionid) REFERENCES fincfg.useractions(id);
+
+
+--
+-- TOC entry 4279 (class 2606 OID 2022550)
+-- Name: queuemovemaps fk_qmm_dq_q; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuemovemaps
+    ADD CONSTRAINT fk_qmm_dq_q FOREIGN KEY (destinationqueueid) REFERENCES fincfg.queues(id);
+
+
+--
+-- TOC entry 4278 (class 2606 OID 2022555)
+-- Name: queuemovemaps fk_qmm_sq_q; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.queuemovemaps
+    ADD CONSTRAINT fk_qmm_sq_q FOREIGN KEY (sourcequeueid) REFERENCES fincfg.queues(id);
+
+
+--
+-- TOC entry 4276 (class 2606 OID 183162)
+-- Name: txtemplatesgroups fk_txt_txtg_id; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesgroups
+    ADD CONSTRAINT fk_txt_txtg_id FOREIGN KEY (templateid) REFERENCES fincfg.txtemplates(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4275 (class 2606 OID 183154)
+-- Name: txtemplatesdetailed fk_txtemplates_fieldid; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.txtemplatesdetailed
+    ADD CONSTRAINT fk_txtemplates_fieldid FOREIGN KEY (fieldid) REFERENCES fincfg.txtemplatesconfigdetailed(id);
+
+
+--
+-- TOC entry 4277 (class 2606 OID 2022319)
+-- Name: userrolesentitymaps fk_u_re_entity; Type: FK CONSTRAINT; Schema: fincfg; Owner: fincfg
+--
+
+ALTER TABLE ONLY fincfg.userrolesentitymaps
+    ADD CONSTRAINT fk_u_re_entity FOREIGN KEY (entityid) REFERENCES finlist.internalentities(id);
+
+
+--
+-- TOC entry 4461 (class 0 OID 0)
+-- Dependencies: 11
+-- Name: SCHEMA fincfg; Type: ACL; Schema: -; Owner: fincfg
+--
+
+GRANT USAGE ON SCHEMA fincfg TO finuiuser;
+GRANT USAGE ON SCHEMA fincfg TO findata;
+GRANT USAGE ON SCHEMA fincfg TO finconnect;
+
+
+--
+-- TOC entry 4462 (class 0 OID 0)
+-- Dependencies: 452
+-- Name: FUNCTION getlastbusinessday(indate date, innoofdays integer); Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT ALL ON FUNCTION fincfg.getlastbusinessday(indate date, innoofdays integer) TO findata;
+
+
+--
+-- TOC entry 4463 (class 0 OID 0)
+-- Dependencies: 432
+-- Name: FUNCTION getqueueid(inqueuename character varying); Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT ALL ON FUNCTION fincfg.getqueueid(inqueuename character varying) TO findata;
+
+
+--
+-- TOC entry 4464 (class 0 OID 0)
+-- Dependencies: 457
+-- Name: FUNCTION getservicename(inserviceid integer); Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT ALL ON FUNCTION fincfg.getservicename(inserviceid integer) TO finuiuser;
+
+
+--
+-- TOC entry 4465 (class 0 OID 0)
+-- Dependencies: 331
+-- Name: TABLE configbsandplrepo; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT ON TABLE fincfg.configbsandplrepo TO finuiuser;
+
+
+--
+-- TOC entry 4466 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: TABLE idgenlist; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.idgenlist TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.idgenlist TO finconnect;
+
+
+--
+-- TOC entry 4467 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: TABLE messagetypes; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.messagetypes TO finuiuser;
+
+
+--
+-- TOC entry 4468 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: TABLE nonbussdayscalendar; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.nonbussdayscalendar TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.nonbussdayscalendar TO findata;
+
+
+--
+-- TOC entry 4469 (class 0 OID 0)
+-- Dependencies: 291
+-- Name: TABLE params; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.params TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.params TO findata;
+
+
+--
+-- TOC entry 4470 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: TABLE queuemessagegroups; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.queuemessagegroups TO finuiuser;
+GRANT SELECT ON TABLE fincfg.queuemessagegroups TO findata;
+
+
+--
+-- TOC entry 4471 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: TABLE queuemessagetrxheader; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.queuemessagetrxheader TO finuiuser;
+
+
+--
+-- TOC entry 4472 (class 0 OID 0)
+-- Dependencies: 332
+-- Name: TABLE queuemovemaps; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE ON TABLE fincfg.queuemovemaps TO finuiuser;
+
+
+--
+-- TOC entry 4473 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: TABLE queues; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.queues TO finuiuser;
+GRANT SELECT ON TABLE fincfg.queues TO findata;
+GRANT SELECT ON TABLE fincfg.queues TO fintrack;
+
+
+--
+-- TOC entry 4474 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: TABLE queuetypes; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.queuetypes TO finuiuser;
+
+
+--
+-- TOC entry 4475 (class 0 OID 0)
+-- Dependencies: 346
+-- Name: TABLE reportcfforcastcriteria; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT ON TABLE fincfg.reportcfforcastcriteria TO finuiuser;
+
+
+--
+-- TOC entry 4476 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: TABLE reportingtxstates; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.reportingtxstates TO finuiuser;
+
+
+--
+-- TOC entry 4477 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: TABLE reportmessagecriteria; Type: ACL; Schema: fincfg; Owner: postgres
+--
+
+GRANT SELECT ON TABLE fincfg.reportmessagecriteria TO finuiuser;
+
+
+--
+-- TOC entry 4478 (class 0 OID 0)
+-- Dependencies: 313
+-- Name: TABLE reportmessagecriteriatemplates; Type: ACL; Schema: fincfg; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.reportmessagecriteriatemplates TO finuiuser;
+GRANT SELECT,INSERT,DELETE,TRIGGER,UPDATE ON TABLE fincfg.reportmessagecriteriatemplates TO finconnect;
+
+
+--
+-- TOC entry 4479 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: TABLE reportmessageresults; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT ON TABLE fincfg.reportmessageresults TO finuiuser;
+
+
+--
+-- TOC entry 4480 (class 0 OID 0)
+-- Dependencies: 235
+-- Name: TABLE roles; Type: ACL; Schema: fincfg; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.roles TO finuiuser;
+
+
+--
+-- TOC entry 4481 (class 0 OID 0)
+-- Dependencies: 236
+-- Name: TABLE routingkeywordmaps; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.routingkeywordmaps TO finuiuser;
+
+
+--
+-- TOC entry 4482 (class 0 OID 0)
+-- Dependencies: 237
+-- Name: TABLE routingkeywords; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.routingkeywords TO finuiuser;
+
+
+--
+-- TOC entry 4483 (class 0 OID 0)
+-- Dependencies: 238
+-- Name: TABLE routingrules; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.routingrules TO finuiuser;
+GRANT SELECT ON TABLE fincfg.routingrules TO fintrack;
+
+
+--
+-- TOC entry 4484 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: TABLE routingrulesactions; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT ON TABLE fincfg.routingrulesactions TO finuiuser;
+
+
+--
+-- TOC entry 4485 (class 0 OID 0)
+-- Dependencies: 240
+-- Name: TABLE routingschemas; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.routingschemas TO finuiuser;
+GRANT SELECT ON TABLE fincfg.routingschemas TO fintrack;
+
+
+--
+-- TOC entry 4486 (class 0 OID 0)
+-- Dependencies: 241
+-- Name: TABLE servicemaps; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.servicemaps TO finuiuser;
+GRANT SELECT ON TABLE fincfg.servicemaps TO fintrack;
+
+
+--
+-- TOC entry 4487 (class 0 OID 0)
+-- Dependencies: 242
+-- Name: TABLE timelimits; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.timelimits TO finuiuser;
+
+
+--
+-- TOC entry 4488 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: TABLE txtemplates; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.txtemplates TO finuiuser;
+
+
+--
+-- TOC entry 4489 (class 0 OID 0)
+-- Dependencies: 293
+-- Name: TABLE txtemplatesconfig; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.txtemplatesconfig TO finuiuser;
+
+
+--
+-- TOC entry 4490 (class 0 OID 0)
+-- Dependencies: 295
+-- Name: TABLE txtemplatesconfigdetailed; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.txtemplatesconfigdetailed TO finuiuser;
+
+
+--
+-- TOC entry 4491 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: TABLE txtemplatesconfigoptions; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT ON TABLE fincfg.txtemplatesconfigoptions TO finuiuser;
+
+
+--
+-- TOC entry 4492 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: TABLE txtemplatesdetailed; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.txtemplatesdetailed TO finuiuser;
+
+
+--
+-- TOC entry 4493 (class 0 OID 0)
+-- Dependencies: 297
+-- Name: TABLE txtemplatesgroups; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.txtemplatesgroups TO finuiuser;
+
+
+--
+-- TOC entry 4494 (class 0 OID 0)
+-- Dependencies: 243
+-- Name: TABLE useractioncodes; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.useractioncodes TO finuiuser;
+
+
+--
+-- TOC entry 4495 (class 0 OID 0)
+-- Dependencies: 244
+-- Name: TABLE useractionmaps; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.useractionmaps TO finuiuser;
+
+
+--
+-- TOC entry 4496 (class 0 OID 0)
+-- Dependencies: 245
+-- Name: TABLE useractions; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.useractions TO finuiuser;
+
+
+--
+-- TOC entry 4497 (class 0 OID 0)
+-- Dependencies: 246
+-- Name: TABLE userdefinedroles; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.userdefinedroles TO finuiuser;
+
+
+--
+-- TOC entry 4498 (class 0 OID 0)
+-- Dependencies: 330
+-- Name: TABLE userrolesentitymaps; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.userrolesentitymaps TO finuiuser;
+
+
+--
+-- TOC entry 4499 (class 0 OID 0)
+-- Dependencies: 247
+-- Name: TABLE userrolesmaps; Type: ACL; Schema: fincfg; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.userrolesmaps TO finuiuser;
+
+
+--
+-- TOC entry 4500 (class 0 OID 0)
+-- Dependencies: 248
+-- Name: TABLE users; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.users TO finuiuser;
+GRANT SELECT ON TABLE fincfg.users TO finat;
+
+
+--
+-- TOC entry 4501 (class 0 OID 0)
+-- Dependencies: 249
+-- Name: TABLE versions; Type: ACL; Schema: fincfg; Owner: fincfg
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE fincfg.versions TO finuiuser;
+
+
+--
+-- TOC entry 2291 (class 826 OID 85494)
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: fincfg; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA fincfg REVOKE ALL ON TABLES  FROM postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA fincfg GRANT SELECT ON TABLES  TO finuiuser;
+
+
+-- Completed on 2021-11-24 10:05:16
+
+--
+-- PostgreSQL database dump complete
+--
+

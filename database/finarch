@@ -1,0 +1,364 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.5
+-- Dumped by pg_dump version 12.2
+
+-- Started on 2021-11-24 14:21:26
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 14 (class 2615 OID 62484)
+-- Name: finarch; Type: SCHEMA; Schema: -; Owner: finarch
+--
+
+CREATE SCHEMA finarch;
+
+
+ALTER SCHEMA finarch OWNER TO finarch;
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 324 (class 1259 OID 218968)
+-- Name: feedbackagg; Type: TABLE; Schema: finarch; Owner: finarch
+--
+
+CREATE TABLE finarch.feedbackagg (
+    requestorservice character varying(50),
+    mqid character varying(100),
+    correlationid character varying(30),
+    interfacecode character varying(10),
+    networkcode character varying(10),
+    correspondentcode character varying(10),
+    applicationcode character varying(10),
+    payload text,
+    swiftmir character varying(30),
+    insertdate timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    batchid character varying(35),
+    batchsequence integer,
+    reference character varying(35),
+    osession character varying(10),
+    isession character varying(10),
+    issuer character varying,
+    obatchid character varying(35),
+    backofficecode character varying(10),
+    externalid character varying(35),
+    sourcefilename character varying(255),
+    destinationfilename character varying(255),
+    operationdetails character varying(140)
+);
+
+
+ALTER TABLE finarch.feedbackagg OWNER TO finarch;
+
+--
+-- TOC entry 325 (class 1259 OID 218977)
+-- Name: history; Type: TABLE; Schema: finarch; Owner: finarch
+--
+
+CREATE TABLE finarch.history (
+    id character varying(30) NOT NULL,
+    payload text NOT NULL,
+    batchid character varying(35),
+    correlationid character varying(30) NOT NULL,
+    sessionid character varying(30),
+    requestorservice character varying(30) NOT NULL,
+    responderservice character varying(30),
+    requesttype character varying(30) NOT NULL,
+    priority integer DEFAULT 5 NOT NULL,
+    holdstatus integer DEFAULT 1 NOT NULL,
+    sequence integer DEFAULT 0,
+    insertdate timestamp without time zone,
+    feedback character varying(40)
+);
+
+
+ALTER TABLE finarch.history OWNER TO finarch;
+
+--
+-- TOC entry 326 (class 1259 OID 218993)
+-- Name: repevents; Type: TABLE; Schema: finarch; Owner: finarch
+--
+
+CREATE TABLE finarch.repevents (
+    eventdate timestamp without time zone,
+    type character varying(20),
+    username character varying(100),
+    service character varying(200),
+    actiontype character varying(100),
+    class character varying(100),
+    message character varying(256),
+    machine character varying(100),
+    guid character varying(35),
+    correlationid character varying(35),
+    additionalinfo text,
+    innerexception character varying(4000)
+);
+
+
+ALTER TABLE finarch.repevents OWNER TO finarch;
+
+--
+-- TOC entry 322 (class 1259 OID 201491)
+-- Name: repstatinvc; Type: TABLE; Schema: finarch; Owner: postgres
+--
+
+CREATE TABLE finarch.repstatinvc (
+    id character varying(30),
+    correlationid character varying(30),
+    insertdate timestamp without time zone,
+    invoicetype character varying(35),
+    reference character varying(35),
+    cdtcustomername character varying(35),
+    dbtcustomername character varying(35),
+    invoiceno character varying(35),
+    invoiceserial character varying(4),
+    amount numeric,
+    currency character varying(3),
+    originalreference character varying(35),
+    cdtaccount character varying(35),
+    maturitydate character varying(6),
+    entity character varying(35),
+    queuename text,
+    status character varying,
+    sourcefilename character varying(255),
+    destinationfilename character varying(255),
+    operationdetails character varying(140),
+    requestorservice character varying(35)
+);
+
+
+ALTER TABLE finarch.repstatinvc OWNER TO postgres;
+
+--
+-- TOC entry 321 (class 1259 OID 201482)
+-- Name: repstatpymt; Type: TABLE; Schema: finarch; Owner: postgres
+--
+
+CREATE TABLE finarch.repstatpymt (
+    id character varying(30),
+    correlationid character varying(30),
+    messagetype character varying,
+    endtoendid character varying(35),
+    reference character varying(35),
+    dbtcustomername character varying(70),
+    dbtaccount character varying(35),
+    orderingbank character varying(12),
+    amount numeric,
+    currency character varying(3),
+    valuedate text,
+    accountingcode character varying(35),
+    locationcode character varying(35),
+    budgetcode character varying(35),
+    queuename text,
+    status character varying,
+    cdtcustomername character varying(70),
+    cdtaccount character varying(35),
+    beneficiarybank character varying(12),
+    sourcefilename character varying(255),
+    destinationfilename character varying(255),
+    remittanceinfo character varying(140),
+    insertdate timestamp without time zone,
+    operationdetails character varying(140),
+    requestorservice character varying(35),
+    paymentid character varying(50),
+    entity character varying(35)
+);
+
+
+ALTER TABLE finarch.repstatpymt OWNER TO postgres;
+
+--
+-- TOC entry 323 (class 1259 OID 201497)
+-- Name: repstatstmt; Type: TABLE; Schema: finarch; Owner: postgres
+--
+
+CREATE TABLE finarch.repstatstmt (
+    id character varying(30),
+    correlationid character varying(30),
+    messagetype character varying,
+    reference character varying(35),
+    amount numeric,
+    currency character varying(3),
+    valuedate text,
+    status character varying,
+    sourcefilename character varying(255),
+    remittanceinfo character varying(500),
+    statementdate text,
+    statementnumber character varying(18),
+    statementreference character varying(35),
+    name character varying(140),
+    accountnumber character varying(35),
+    trxmark character varying(5),
+    insertdate timestamp without time zone,
+    insertdatech text,
+    operationdetails character varying(140),
+    requestorservice character varying(35),
+    queuename text,
+    destinationfilename character varying(255),
+    openbalancedate text,
+    closebalancedate text,
+    amountchar text,
+    entity character varying(35)
+);
+
+
+ALTER TABLE finarch.repstatstmt OWNER TO postgres;
+
+--
+-- TOC entry 329 (class 1259 OID 2017051)
+-- Name: routedmessages; Type: TABLE; Schema: finarch; Owner: finarch
+--
+
+CREATE TABLE finarch.routedmessages (
+    id character varying(30) NOT NULL,
+    correlationid character varying(30),
+    insertdate timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ack integer DEFAULT 0,
+    messagetype character varying(50),
+    currentqueue integer,
+    sender character varying(70),
+    receiver character varying(70),
+    reference character varying(35) NOT NULL,
+    requestorservice character varying(35),
+    responderservice character varying(35),
+    userid integer,
+    amount character varying(50),
+    updatedate timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    entity character varying(35),
+    ioidentifier character(1) DEFAULT 'U'::bpchar NOT NULL,
+    paymentid character varying(50)
+);
+
+
+ALTER TABLE finarch.routedmessages OWNER TO finarch;
+
+
+
+
+--
+-- TOC entry 4139 (class 2606 OID 218987)
+-- Name: history history_pkey; Type: CONSTRAINT; Schema: finarch; Owner: finarch
+--
+
+ALTER TABLE ONLY finarch.history
+    ADD CONSTRAINT history_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4141 (class 2606 OID 2017062)
+-- Name: routedmessages routedmessages_pkey; Type: CONSTRAINT; Schema: finarch; Owner: finarch
+--
+
+ALTER TABLE ONLY finarch.routedmessages
+    ADD CONSTRAINT routedmessages_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4293 (class 0 OID 0)
+-- Dependencies: 14
+-- Name: SCHEMA finarch; Type: ACL; Schema: -; Owner: finarch
+--
+
+GRANT USAGE ON SCHEMA finarch TO finuiuser;
+GRANT USAGE ON SCHEMA finarch TO findata;
+GRANT USAGE ON SCHEMA finarch TO finconnect;
+GRANT USAGE ON SCHEMA finarch TO fincfg;
+
+
+--
+-- TOC entry 4294 (class 0 OID 0)
+-- Dependencies: 324
+-- Name: TABLE feedbackagg; Type: ACL; Schema: finarch; Owner: finarch
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE finarch.feedbackagg TO findata;
+GRANT SELECT ON TABLE finarch.feedbackagg TO finuiuser;
+
+
+--
+-- TOC entry 4295 (class 0 OID 0)
+-- Dependencies: 325
+-- Name: TABLE history; Type: ACL; Schema: finarch; Owner: finarch
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE finarch.history TO findata;
+GRANT SELECT ON TABLE finarch.history TO finuiuser;
+
+
+--
+-- TOC entry 4296 (class 0 OID 0)
+-- Dependencies: 326
+-- Name: TABLE repevents; Type: ACL; Schema: finarch; Owner: finarch
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE finarch.repevents TO findata;
+GRANT SELECT ON TABLE finarch.repevents TO finuiuser;
+
+
+--
+-- TOC entry 4297 (class 0 OID 0)
+-- Dependencies: 322
+-- Name: TABLE repstatinvc; Type: ACL; Schema: finarch; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatinvc TO findata;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatinvc TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatinvc TO finconnect;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatinvc TO fincfg;
+GRANT ALL ON TABLE finarch.repstatinvc TO finarch;
+
+
+--
+-- TOC entry 4298 (class 0 OID 0)
+-- Dependencies: 321
+-- Name: TABLE repstatpymt; Type: ACL; Schema: finarch; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatpymt TO findata;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatpymt TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatpymt TO finconnect;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatpymt TO fincfg;
+GRANT ALL ON TABLE finarch.repstatpymt TO finarch;
+
+
+--
+-- TOC entry 4299 (class 0 OID 0)
+-- Dependencies: 323
+-- Name: TABLE repstatstmt; Type: ACL; Schema: finarch; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatstmt TO findata;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatstmt TO finuiuser;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finarch.repstatstmt TO finconnect;
+GRANT ALL ON TABLE finarch.repstatstmt TO fincfg;
+
+
+--
+-- TOC entry 4300 (class 0 OID 0)
+-- Dependencies: 329
+-- Name: TABLE routedmessages; Type: ACL; Schema: finarch; Owner: finarch
+--
+
+GRANT SELECT ON TABLE finarch.routedmessages TO finuiuser;
+GRANT SELECT,INSERT ON TABLE finarch.routedmessages TO findata;
+
+
+-- Completed on 2021-11-24 14:21:30
+
+--
+-- PostgreSQL database dump complete
+--
+

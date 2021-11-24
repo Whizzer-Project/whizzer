@@ -1,0 +1,396 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.5
+-- Dumped by pg_dump version 12.2
+
+-- Started on 2021-11-24 10:11:49
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 13 (class 2615 OID 62488)
+-- Name: finlist; Type: SCHEMA; Schema: -; Owner: finlist
+--
+
+CREATE SCHEMA finlist;
+
+
+ALTER SCHEMA finlist OWNER TO finlist;
+
+--
+-- TOC entry 448 (class 1255 OID 255120)
+-- Name: trg_updateexternalaccounts(); Type: FUNCTION; Schema: finlist; Owner: finlist
+--
+
+CREATE FUNCTION finlist.trg_updateexternalaccounts() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin 
+    if new.defaultaccount = 'Y'
+    then
+      update finlist.externalaccounts set defaultaccount = 'N' where id != new.id and externalentityname = new.externalentityname;
+    end if;
+    return new;
+end ;
+$$;
+
+
+ALTER FUNCTION finlist.trg_updateexternalaccounts() OWNER TO finlist;
+
+--
+-- TOC entry 449 (class 1255 OID 255123)
+-- Name: trg_updateinternalaccounts(); Type: FUNCTION; Schema: finlist; Owner: finlist
+--
+
+CREATE FUNCTION finlist.trg_updateinternalaccounts() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin 
+    if new.defaultaccount = 'Y'
+    then
+      update finlist.internalaccounts set defaultaccount = 'N' where id != new.id and internalentityname = new.internalentityname;
+    end if;
+    return new;
+end ;
+$$;
+
+
+ALTER FUNCTION finlist.trg_updateinternalaccounts() OWNER TO finlist;
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 270 (class 1259 OID 63239)
+-- Name: banks; Type: TABLE; Schema: finlist; Owner: finlist
+--
+
+CREATE TABLE finlist.banks (
+    name character varying(35) NOT NULL,
+    bic character varying NOT NULL,
+    address character varying(70),
+    country character varying(2) NOT NULL,
+    nbrcode character varying(9)
+);
+
+
+ALTER TABLE finlist.banks OWNER TO finlist;
+
+SET default_tablespace = finlisttbs;
+
+--
+-- TOC entry 271 (class 1259 OID 63245)
+-- Name: externalaccounts; Type: TABLE; Schema: finlist; Owner: finlist; Tablespace: finlisttbs
+--
+
+CREATE TABLE finlist.externalaccounts (
+    id integer NOT NULL,
+    currency character varying(3) NOT NULL,
+    accountnumber character varying(35) NOT NULL,
+    bankbic character varying(8) NOT NULL,
+    description character varying(70),
+    locked character(1),
+    defaultaccount character(1),
+    otherdetails character varying(70),
+    externalentityname character varying(35) NOT NULL,
+    maxamount numeric(17,2)
+);
+
+
+ALTER TABLE finlist.externalaccounts OWNER TO finlist;
+
+--
+-- TOC entry 272 (class 1259 OID 63248)
+-- Name: externalentities; Type: TABLE; Schema: finlist; Owner: finlist; Tablespace: finlisttbs
+--
+
+CREATE TABLE finlist.externalentities (
+    name character varying(35) NOT NULL,
+    id integer,
+    address character varying(70),
+    city character varying(35),
+    country character varying(2),
+    fiscalcode character varying NOT NULL,
+    email character varying(35)
+);
+
+
+ALTER TABLE finlist.externalentities OWNER TO finlist;
+
+--
+-- TOC entry 274 (class 1259 OID 63254)
+-- Name: internalentities; Type: TABLE; Schema: finlist; Owner: finlist; Tablespace: finlisttbs
+--
+
+CREATE TABLE finlist.internalentities (
+    name character varying(35) NOT NULL,
+    id integer NOT NULL,
+    address character varying(70),
+    city character varying(35),
+    country character varying(2),
+    fiscalcode character varying NOT NULL,
+    disabled integer
+);
+
+
+ALTER TABLE finlist.internalentities OWNER TO finlist;
+
+--
+-- TOC entry 283 (class 1259 OID 135666)
+-- Name: externalinternalentities; Type: VIEW; Schema: finlist; Owner: finlist
+--
+
+CREATE VIEW finlist.externalinternalentities AS
+ SELECT DISTINCT en.name
+   FROM ( SELECT externalentities.name
+           FROM finlist.externalentities
+        UNION
+         SELECT internalentities.name
+           FROM finlist.internalentities) en;
+
+
+ALTER TABLE finlist.externalinternalentities OWNER TO finlist;
+
+--
+-- TOC entry 273 (class 1259 OID 63251)
+-- Name: internalaccounts; Type: TABLE; Schema: finlist; Owner: finlist; Tablespace: finlisttbs
+--
+
+CREATE TABLE finlist.internalaccounts (
+    id integer NOT NULL,
+    currency character varying(3) NOT NULL,
+    accountnumber character varying(35) NOT NULL,
+    bankbic character varying(8) NOT NULL,
+    description character varying(70),
+    locked character(1),
+    defaultaccount character(1),
+    otherdetails character varying(70),
+    internalentityname character varying(35) NOT NULL,
+    resourceid character varying(50),
+    balance numeric(25,2),
+    accountnumberid character varying(35)
+);
+
+
+ALTER TABLE finlist.internalaccounts OWNER TO finlist;
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4133 (class 2606 OID 85165)
+-- Name: banks PK_BANKS_BIC; Type: CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.banks
+    ADD CONSTRAINT "PK_BANKS_BIC" PRIMARY KEY (bic);
+
+
+--
+-- TOC entry 4143 (class 2606 OID 2022315)
+-- Name: internalentities internalentities_pkey; Type: CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.internalentities
+    ADD CONSTRAINT internalentities_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4135 (class 2606 OID 85167)
+-- Name: externalaccounts pk_extaccount_id; Type: CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.externalaccounts
+    ADD CONSTRAINT pk_extaccount_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4140 (class 2606 OID 85169)
+-- Name: internalaccounts pk_intacc_id; Type: CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.internalaccounts
+    ADD CONSTRAINT pk_intacc_id PRIMARY KEY (id);
+
+
+CREATE UNIQUE INDEX uk_extacct_acc ON finlist.externalaccounts USING btree (accountnumber);
+
+
+SET default_tablespace = finlisttbs;
+
+--
+-- TOC entry 4137 (class 1259 OID 85502)
+-- Name: uk_extent_fsc; Type: INDEX; Schema: finlist; Owner: finlist; Tablespace: finlisttbs
+--
+
+CREATE UNIQUE INDEX uk_extent_fsc ON finlist.externalentities USING btree (fiscalcode);
+
+
+SET default_tablespace = '';
+
+--
+-- TOC entry 4138 (class 1259 OID 85194)
+-- Name: uk_extent_name; Type: INDEX; Schema: finlist; Owner: finlist
+--
+
+CREATE UNIQUE INDEX uk_extent_name ON finlist.externalentities USING btree (name);
+
+
+--
+-- TOC entry 4141 (class 1259 OID 85195)
+-- Name: uk_intacct_acc; Type: INDEX; Schema: finlist; Owner: finlist
+--
+
+CREATE UNIQUE INDEX uk_intacct_acc ON finlist.internalaccounts USING btree (accountnumber);
+
+
+--
+-- TOC entry 4144 (class 1259 OID 85506)
+-- Name: uk_intent_fisccode; Type: INDEX; Schema: finlist; Owner: finlist
+--
+
+CREATE UNIQUE INDEX uk_intent_fisccode ON finlist.internalentities USING btree (fiscalcode);
+
+
+--
+-- TOC entry 4145 (class 1259 OID 85197)
+-- Name: uk_intent_name; Type: INDEX; Schema: finlist; Owner: finlist
+--
+
+CREATE UNIQUE INDEX uk_intent_name ON finlist.internalentities USING btree (name);
+
+
+--
+-- TOC entry 4164 (class 2620 OID 2003679)
+-- Name: externalaccounts trgauexternalaccounts; Type: TRIGGER; Schema: finlist; Owner: finlist
+--
+
+CREATE TRIGGER trgauexternalaccounts BEFORE INSERT OR UPDATE ON finlist.externalaccounts FOR EACH ROW EXECUTE PROCEDURE finlist.trg_updateexternalaccounts();
+
+
+--
+-- TOC entry 4165 (class 2620 OID 2003681)
+-- Name: internalaccounts trgauinternalaccounts; Type: TRIGGER; Schema: finlist; Owner: finlist
+--
+
+CREATE TRIGGER trgauinternalaccounts BEFORE INSERT OR UPDATE ON finlist.internalaccounts FOR EACH ROW EXECUTE PROCEDURE finlist.trg_updateinternalaccounts();
+
+
+--
+-- TOC entry 4158 (class 2606 OID 85449)
+-- Name: externalaccounts FK_EXTACC_BANKS_BIC; Type: FK CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.externalaccounts
+    ADD CONSTRAINT "FK_EXTACC_BANKS_BIC" FOREIGN KEY (bankbic) REFERENCES finlist.banks(bic);
+
+
+--
+-- TOC entry 4159 (class 2606 OID 85454)
+-- Name: externalaccounts FK_EXTACC_EXTENT_ENT; Type: FK CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.externalaccounts
+    ADD CONSTRAINT "FK_EXTACC_EXTENT_ENT" FOREIGN KEY (externalentityname) REFERENCES finlist.externalentities(name) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4160 (class 2606 OID 85459)
+-- Name: internalaccounts FK_INTACC_BAKS_BIC; Type: FK CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.internalaccounts
+    ADD CONSTRAINT "FK_INTACC_BAKS_BIC" FOREIGN KEY (bankbic) REFERENCES finlist.banks(bic);
+
+
+--
+-- TOC entry 4161 (class 2606 OID 85464)
+-- Name: internalaccounts FK_INTACC_INTENT_ENT; Type: FK CONSTRAINT; Schema: finlist; Owner: finlist
+--
+
+ALTER TABLE ONLY finlist.internalaccounts
+    ADD CONSTRAINT "FK_INTACC_INTENT_ENT" FOREIGN KEY (internalentityname) REFERENCES finlist.internalentities(name) ON DELETE CASCADE;
+
+
+
+--
+-- TOC entry 4319 (class 0 OID 0)
+-- Dependencies: 13
+-- Name: SCHEMA finlist; Type: ACL; Schema: -; Owner: finlist
+--
+
+GRANT USAGE ON SCHEMA finlist TO finuiuser;
+
+
+--
+-- TOC entry 4321 (class 0 OID 0)
+-- Dependencies: 270
+-- Name: TABLE banks; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finlist.banks TO finuiuser;
+
+
+--
+-- TOC entry 4323 (class 0 OID 0)
+-- Dependencies: 271
+-- Name: TABLE externalaccounts; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finlist.externalaccounts TO finuiuser;
+
+
+--
+-- TOC entry 4324 (class 0 OID 0)
+-- Dependencies: 272
+-- Name: TABLE externalentities; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finlist.externalentities TO finuiuser;
+
+
+--
+-- TOC entry 4325 (class 0 OID 0)
+-- Dependencies: 274
+-- Name: TABLE internalentities; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finlist.internalentities TO finuiuser;
+
+
+--
+-- TOC entry 4326 (class 0 OID 0)
+-- Dependencies: 283
+-- Name: TABLE externalinternalentities; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT ON TABLE finlist.externalinternalentities TO finuiuser;
+
+
+--
+-- TOC entry 4327 (class 0 OID 0)
+-- Dependencies: 273
+-- Name: TABLE internalaccounts; Type: ACL; Schema: finlist; Owner: finlist
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE finlist.internalaccounts TO finuiuser;
+
+
+
+-- Completed on 2021-11-24 10:11:51
+
+--
+-- PostgreSQL database dump complete
+--
+
