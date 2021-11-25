@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="ISO-8859-1">
+<title><th:block th:text="${title}" /></title>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+
+<link th:href="@{/style/jquery/query-builder.default.min.css}"
+	rel="stylesheet" type="text/css" />
+<script th:src="@{/libs/jquery/jquery-extendext.js}"></script>
+<script th:src="@{/libs/jquery/doT.js}" type="text/javascript"></script>
+<script th:src="@{/libs/jquery/query-builder.min.js}"></script>
+<script th:src="@{/libs/jquery-ui-1.12.1/jquery-ui.js}"></script>
+<script th:src="@{/scripts/queryBuilder/myFilters.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+	/*<![CDATA[*/
+	 listsMetaData = /*[[${listsMetaData}]]*/
+	 detailed = /*[[${detailed}]]*/
+	 button = /*[[#{${button}}]]*/
+// 	ruleOptions = [{label:'xpath'}, {label:'rule'}, {label:'text'}]
+	
+	 templateCondition = null
+	//set value to field
+	$.each(detailed, function(key, value){
+		$('#'+key).val(value)
+	})
+	$('#createTxFieldTip').attr('title',$('#fieldxpath').val())
+	typeUserDefined()
+	$('#templatesConfigDetailedType0').attr('checked',true)
+	if (detailed.txtemplatesconfigoption !== null){
+		typePreDefined()
+		$('#templatesConfigDetailedType1').attr('checked',true)
+	}
+	
+	function typeUserDefined(){
+		$('#predefined').hide()
+		$('#userdefined').show()
+		$('#userdefined_').show()
+	}
+	
+	function typePreDefined(){
+		$('#predefined').show()
+		$('#userdefined').hide()
+		$('#userdefined_').hide()
+	}
+	
+	/*]]>*/		
+</script>
+<script th:src="@{/scripts/templateConfigDetailed_add.js}"></script>
+</head>
+<body>
+	<form method="post" th:action="${formAction}" style="margin: 2% 2%;"
+		autocomplete="off" name="templateConfigForm" id="templateConfigForm">
+		<input id="id" type="hidden" maxlength="35" th:required="required" class="form-control" /> 
+		<input id="editable" type="hidden" class="form-control" /> 
+		<input id="fieldtype" type="hidden" class="form-control" /> 
+		<input id="fieldvalue" type="hidden" class="form-control" /> 
+		<input id="fieldvisibility" type="hidden" class="form-control" /> 
+		<input id="mandatory" type="hidden" class="form-control" /> 
+		<input id="pattern" type="hidden" class="form-control" />
+		<div>
+			<div>
+				<th:block th:text="#{templatesConfigDetailed.Name}" />
+				:
+			</div>
+			<div>
+				<input id="fieldlabel" type="text" maxlength="50"
+					th:required="required" class="form-control" />
+			</div>
+		</div>
+		<div>
+			<div>
+				<th:block th:text="#{templatesConfigDetailed.visible}" />
+				:
+			</div>
+			<div style="display: inline-block">
+				<input id="visible" type="checkbox" checked maxlength="35" />
+			</div>
+		</div>
+		<div>
+
+			<div width="100%">
+				<input id="templatesConfigDetailedType0" name="templateType"
+					type="radio" value="0">user defined</input> 
+				<input id="templatesConfigDetailedType1" name="templateType" type="radio"
+					value="1">predefined</input>
+			</div>
+		</div>
+		<div id="userdefined">
+			<div>
+				<div>
+					<th:block th:text="#{templatesConfigDetailed.busslist}" />
+					:
+				</div>
+				<div id="bussListDiv"></div>
+			</div>
+			<div>
+				<div style="vertical-align: top;">
+					<th:block th:text="#{templatesConfigDetailed.busslistfield}" />
+					:
+				</div>
+				<div id="bussListFieldDiv">
+					<select class="form-control"></select>
+				</div>
+			</div>
+		</div>
+		<div id="predefined" style="display: none">
+			<div style="float: left; width: 50%;">
+				<th:block th:text="#{templatesConfigDetailed.txtype}" />
+				:
+			</div>
+			<select id="optionid" class="form-control">
+				<option></option>
+				<option th:if="${detailed.txtemplatesconfigoption}"
+					th:each="option : ${options}" th:value="${option.id}"
+					th:selected="${option.id==detailed.txtemplatesconfigoption.id}"
+					th:text="${option.name}">
+				<option th:unless="${detailed.txtemplatesconfigoption}"
+					th:each="option : ${options}" th:value="${option.id}"
+					th:text="${option.name}">
+			</select>
+		</div>
+		<div>
+			<div style="vertical-align: top;">
+				<th:block th:text="#{templatesConfigDetailed.txfield}" />
+				:
+			</div>
+			<div style="display: block">
+				<span id="createTxFieldTip" data-toggle="tooltip" data-placement="top" title="">
+					<input id="fieldxpath" class="form-control" readonly style="cursor: copy;">
+					</input>
+				</span>
+			</div>
+		</div>
+		<div id="userdefined_">
+			<div style='margin: 0 auto; padding: 10px 10px;'>
+				<span style="display: block;"
+					th:text="#{templatesConfigDetailed.condition}"></span>
+				<div id="templatesConfigDetailedBuilder"></div>
+
+			</div>
+			<div id="templatesConfigDetailedAll"></div>
+			<div id="templatesConfigDetailedMetadata"></div>
+		</div>
+	</form>
+	<button th:if="${templateUpdButton}" id="save"
+		class="btn create submitButton glossy-button glossy-button--purple"
+		style="width: auto;" th:text="#{enrichRules.CreateRule}">Save
+		Enrich Rule</button>
+	<button id="CancelRecord"
+		class="btn cancel submitButton glossy-button glossy-button--purple"
+		style="width: auto;" th:text="#{enrichRules.CancelRule}">Cancel
+		Enrich Rule</button>	
+	<br>
+	<br>
+	<br>
+</body>
+</html>

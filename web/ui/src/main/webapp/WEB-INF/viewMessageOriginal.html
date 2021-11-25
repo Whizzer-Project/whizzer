@@ -1,0 +1,60 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<style>
+</style>
+
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body class="modal">
+
+	<th:block th:switch="${#lists.isEmpty(message)}">
+		<th:block th:case="true">
+	        No message with the specified id was found.
+		</th:block>
+		<th:block th:case="false">
+			<table style="table-layout: fixed; width: 100%;">
+				<tr>
+					<td style="width:65%">
+						<th:block th:if="${payload != null}">
+							<th:block th:if="${xmlParse}">
+								<div id="xmlTree" th:include="fragments/fragments::xmlViewAdpharma(parent=${payload.getDocumentElement()})">
+							</th:block>
+							<th:block th:unless="${xmlParse}">
+								<div id="xmlTree" th:include="fragments/fragments::xmlView(parent=${payload.getDocumentElement()})">
+							</th:block>
+							</div>
+						</th:block>
+						<div th:if="${payloadString != null}" th:utext="${payloadString}">
+						</div>
+					</td>
+				</tr>
+			</table>
+		</th:block>
+	</th:block>
+
+</body>
+</html>

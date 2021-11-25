@@ -1,0 +1,412 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:replace="fragments/fragments::libs"></th:block>
+<script type="text/javascript" th:inline="javascript">
+	
+	/*<![CDATA[*/
+	
+		selActions = /*[[${selActions}]]*/;
+		grpActions = /*[[${grpActions}]]*/;
+		groups = {};
+		externalEntitiesName =/*[[${externalEntitiesName}]]*/;
+		queueName = /*[[${queueName}]]*/;
+		groupsMap = /*[[${groupsMap}]]*/;
+		groupFilters = /*[[${groupFilters}]]*/;
+		groupFields =  /*[[${groupFields}]]*/;
+		messageTypes = /*[[${messageTypes}]]*/;
+		temp  = /*[[${dropDowns}]]*/;
+		$$dropDowns = temp.length>0?JSON.parse(temp):undefined
+		
+		bussinesAreas =  /*[[${bussinesAreas}]]*/;
+		queuesDestination = /*[[${queuesDestination}]]*/;
+	
+	/*]]>*/
+</script>
+<script th:src="@{/scripts/queue.js}"></script>
+<!-- make dialog form beautiful -->
+<link rel="stylesheet" type="text/css"
+	th:href="@{/style/beautifulDialog.css}" />
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body>
+
+	<div th:replace="fragments/fragments::header"></div>
+
+	<div class="content">
+
+
+
+		<h3 id="queueName">
+			<th:block th:text="${#strings.trim(queueName)}" />
+		</h3>
+
+
+		<th:block th:switch="${#lists.isEmpty(messageTypes)}">
+			<th:block th:case="true">
+				<th:block th:text="#{queue.noMessages}" />
+
+			</th:block>
+			<th:block th:case="false">
+
+				<div>
+					<ul class="nav nav-tabs" role="tablist">
+						<th:block th:each="messageType, iter : ${messageTypes}" th:with="index=${iter.index}">
+							<li role="presentation" th:classappend="${index == 0} ? active : ''">
+								<a th:href="@{#tabs-__${messageType.getMessageType()}__}"
+									th:aria-controls="tabs-__${messageType.getMessageType()}__"
+									role="tab" data-toggle="tab">
+									<th:block th:text="${messageType.getFriendlyName()}" />
+								</a>
+							</li>
+						</th:block>
+					</ul>
+					<div class="tab-content">
+						<th:block th:each="msgType, iter : ${messageTypes}" th:with="messageType=${msgType.getMessageType()}, index=${iter.index}">
+							<div role="tabpanel" class="tab-pane" th:classappend="${index == 0} ? active : ''" th:id="${'tabs-' + messageType}">
+								<input type="hidden" name="messageType" th:value="${messageType}"></input>
+								<th:block th:if="${viewOperateButton}">
+									<div data-type="globalFilters" class="col-sm-12" style="position:relative">
+										<div class="col-md-12" id="beneficiary">
+											<label th:for="${'globalFilter-' + messageType}" class="col-sm-3 col-form-label">Beneficiary</label>
+											<div class="col-md-3">
+												<select data-type="globalFilter" class="form-control" multiple th:id="${'globalFilter-' + messageType}" style="width:100%">
+													<option th:each="externalName : ${externalEntitiesName}"
+														th:value="${externalName.get('name')}" th:text="${externalName.get('name')}" />
+												</select>
+											</div>
+										</div>
+									</div>
+									<div class="grpContainer">
+										<th:block th:each="g : ${grpActions.get(messageType)}">
+											<button th:value="${g.name}" type="button" th:text="${g.label}"  id="batchBtn" 
+												class="groupAction allButton submitButton glossy-button glossy-button--purple addButton"></button>
+										</th:block>
+									</div>
+									<div th:if="${groupsMap}" id="activateAllGroup">
+										<th:block th:if="${msgType.getFriendlyName().equals('Undefined') and (queueName.equals('InvestigOutQueue') or queueName.equals('InvestigInQueue'))}">
+											<input type="checkbox" class="" id="selectAll" 
+											data-type="selectAll" /><label for="selectAll"
+											th:text="${' Select all ' + msgType.getFriendlyName() + ' transactions'}">
+											Select all queues</label>
+										</th:block>
+										<th:block th:unless="${msgType.getFriendlyName().equals('Undefined') and (queueName.equals('InvestigOutQueue') or queueName.equals('InvestigInQueue'))}">
+											<input type="checkbox" class="" id="selectAll" 
+											data-type="selectAll" /><label for="selectAll"
+											th:text="${' Select all ' + msgType.getFriendlyName() + 's'}">
+											Select all queues</label>
+										</th:block>
+										
+									</div>
+								</th:block>
+								<div>
+									<th:block th:each="group : ${groupsMap.get(messageType)}">
+										<h3 th:attr="data-groupKey=${group.groupKey}">
+											<input type="checkbox" class="batchCheckbox"
+												th:value="${group.groupKey}" />
+											<script type="text/javascript" th:inline="javascript">
+											/*<![CDATA[*/
+											//used for group action
+											groupKey = /*[[${group.groupKey}]]*/;
+											
+											groups[groupKey] = {
+													timekey: /*[[${group.timestamp}]]*/,
+													values: /*[[${group.fields}]]*/,
+													cont:/*[[${group.currency}]]*/
+											};
+											/*]]>*/
+											</script>
+											<input type="hidden" name="groupKey" th:value="${group.groupKey}" /> 
+											<input type="hidden" name="timekey" th:value="${group.timestamp}" /> 
+											<a th:href="@{#__${group.groupKey}__}" style="text-decoration: none; color: #000;"> 
+												<th:block th:if="${!messageType.equals('Undefined')}" th:text="${group.fields}" />
+												Total: 
+												<span data-id="selTotal">
+													<th:block th:text="${group.count}" />;
+												</span> 
+												<span>Total selected:</span> 
+												<span data-id="selCount">0</span>; 
+												<th:b th:if="${!messageType.equals('Undefined')}">Total amount:
+													<span data-id="totalAmount">
+														<th:block th:if="${!messageType.equals('Undefined')}" th:text="${#numbers.formatDecimal(group.totalAmount,0,'COMMA',2,'POINT')}" />;
+													</span>
+												</th:b>
+												<span>Total selected amount:</span> 
+												<span data-id="selAmount">0.00</span> 
+												<span class="arrow down black"></span>
+											</a>
+										</h3>
+
+										<div th:id="${group.groupKey}" class="collapse">
+
+											<table style="width:100%;">
+												<tr>
+													<td><script th:inline="javascript">
+														/*<![CDATA[*/
+															$(function(){
+																var messageType = [[${messageType}]];
+																var columns = [[${columns}]];
+																var groupKey = [[${group.groupKey}]];
+																
+																var extraData = {
+																		queueName: queueName,
+																		messageType: messageType
+																};
+																
+																var groupFieldNames = /*[[${groupFieldNames}]]*/
+																var fields = /*[[${groupFieldNames.get(messageType)}]]*/;
+																var values = /*[[${group.fields}]]*/;
+																
+																$.each(values, function(i, item){
+																	extraData["filter_" + fields[i].kname] = item; //filter_{fieldName}={fieldValue}
+																});
+																var datatablesColumns = [];
+																
+																$.each(columns[messageType], function(i, item) {
+																	datatablesColumns.push({
+																		data: item.routingKeywordName,
+																		title: item.label,
+																		className:(item.contentType == 'number')? 'dt-right ' + item.routingKeywordName: '',
+																		render: (item.contentType == 'number')? $.fn.dataTable.render.number(',','.',2,''): '',
+																	});
+																});
+																
+																var placeholder = $('#' + groupKey + ' .messagesTablePlaceholder');
+																var tableId = "messages_" + groupKey;
+																datatablesColumns.push({
+																	isActionsColumn: true,
+																	beforeRender: function(data, type, row, meta) {																		
+																		return '<input type="checkbox" class="routeCheckbox" value="' + row.id + '"></input>';
+																	}
+																});
+																
+																var onInitComplete = function(settings, json){
+																	var h3 = document.querySelector("[data-groupkey='"+$(this).attr("id").split("_")[1]+"']")
+																	h3.style.display = "block"
+																	var groupText = $("[href='#"+$(this).attr("id").split('_')[1]+"'");
+																	var selTotal = settings.json.recordsTotal 
+																	groupText.find("[data-id='selTotal']").html(selTotal+";");
+																	var totalAmount = Array.from($(this).find("td.amount")).map(obj=>(obj.innerText.replaceAll(",", "")))
+																	if (totalAmount.length > 1){
+																		var sumTotalAmount = totalAmount.reduce((accumulator, curr) => 1*accumulator + 1*curr).toFixed(2)
+																		groupText.find("[data-id='totalAmount']").html(sumTotalAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+";")
+																	}else if (totalAmount.length == 1){
+																		groupText.find("[data-id='totalAmount']").html(totalAmount[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+";")
+																	}
+																	else{
+																		if (selTotal == 0){
+																			h3.style.display = "none"
+																		}
+																		groupText.find("[data-id='totalAmount']").html(" 0.00;")
+																	}
+																	$(this).find(".routeCheckbox").click(function(e){
+																		if(e.originalEvent.isTrusted){
+																		  	groupText.parent().find(".batchCheckbox").prop("checked",false)
+																		}
+																		let stringAmount = groupText.find("[data-id='selAmount']").html();
+																		let stringCount = groupText.find("[data-id='selCount']").html();
+																		let amount = Number(stringAmount!=""?stringAmount.replace(/,/g, ''):0);
+																		let count = Number(stringCount!=""?stringCount:0);
+																		if ($(this).parent().parent().find(".amount")){
+																			let selAmount = Number($(this).parent().parent().find(".amount").html().replace(/,/g, ''));
+																			if($(this).is(":checked")){
+																				amount = (amount+selAmount).toFixed(2);
+																				count++;
+																			}else{
+																				amount = (amount-selAmount).toFixed(2);
+																				count--;
+																			}
+																		}
+																		groupText.find("[data-id='selAmount']").html(amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","))
+																		groupText.find("[data-id='selCount']").html(count)
+																	})
+																	hideLoader()
+																}
+																
+																var view = "view"
+																var button = undefined
+																var beforeUpdate = undefined
+																if ('edit' == queueName.toLowerCase()){
+																	view = 'edit'
+																	button = 'Save'
+																	beforeUpdate = function(){
+																		var map = {};
+																		$("[data-type-editid]").each(function(){
+																			if($(this).attr("data-type-editid") != -1)
+																				map[$(this).attr("data-path")] = $(this).val();
+																		});
+																		$.ajax({
+																	        type: "POST",
+																	        url: id+'/save-payload',
+																	        data: map,  
+																	        dataType: "json",
+																	        beforeSend: function(xhr){
+																	        	showLoader()
+																	            xhr.setRequestHeader($('#_csrf_header').attr("content"),
+																	            					 $('#_csrf').attr("content"));
+																	        },
+																	        success: function (data) {
+																	        	
+																	        },
+																	        error: function(error){
+																	        	
+																	        } ,
+																	        complete: function(){
+																	        	setTimeout(function(){
+																	        		//alert('reload')
+														            				location.reload()
+														            			}, 5000)
+																	        }
+																	    });
+																		return true
+																	}
+																}
+																
+																$('#' + tableId).datatablesInit({
+																	language: $$table_language,
+																	actions: {
+																		get: {url :"page-messages", 
+																			after:
+																				function(){
+																					var allCheckBox = document.querySelector("#selectAll")
+																					if (allCheckBox.checked){
+																						allCheckBox.click()
+																					}
+																					var allCheckBoxInput = (document.querySelectorAll('.batchCheckbox'))
+																					if (allCheckBoxInput)
+																					Array.from(allCheckBoxInput).forEach(elem=>{
+																						if (elem.value==tableId.split('_')[1] && elem.checked){
+																							elem.click();
+																						}
+																					})
+																					
+																					
+																				}
+																		},
+																		view: {
+																			url : 'payload?id={id}&type=' + messageType+"&action="+view,
+																			dialog:{
+																				title : "View message",
+																				size : "wide",
+																			},
+																			button: button,
+																			beforeUpdate: beforeUpdate,
+																		},
+																	},
+																	columns: datatablesColumns,
+																	data: extraData,
+																	drawCallback: onInitComplete,
+																	pageLength: [100, 250, 500, 1000],
+																});
+															});
+															
+															
+														 /*]]>*/
+														</script>
+														<table class="fintpTable"
+															th:id="${'messages_' + group.groupKey}"
+															style="width: 100%">
+
+														</table></td>
+													<td width="10%;"><th:block
+															th:each="s : ${selActions.get(messageType)}"
+															th:if="${viewOperateButton}">
+															<!-- style="width:80px;height:25px;"  -->
+															<th:block th:if="${group.hasOperate} == true">
+																<button th:value="${s.name}"
+																	th:data-hasDetails="${s.detailsInput}" type="button"
+																	th:text="${s.label}"
+																	th:style="${(s.name=='MoveTo'||s.name=='Suspend')?'margin-bottom:20px':''}"
+																	class="messageAction submitButton glossy-button glossy-button--purple addButton"></button>
+															</th:block>
+															<br />
+															<div th:if="${!s.userActionCodeEntity.isEmpty()}"
+																th:id="${s.name}">
+																<th:block th:if="${group.hasOperate} == true">
+																	<select name="userActionCodeEntity"
+																		class="form-control"
+																		style="width: auto;margin-left:23px">
+																		<option value="" />
+																		<option th:each="a : ${s.userActionCodeEntity}"
+																			th:value="${a.getLabel()}" th:text="${a.getLabel()}" />
+																	</select>
+																</th:block>
+															</div>
+															
+															<select data-type="moveTo" class="form-control"
+																th:if="${!queuesDestination.isEmpty() && s.name=='MoveTo'}">
+																<option th:each="q : ${queuesDestination}"
+																	th:value="${q.value}" th:text="${q.key}" />
+															</select>
+															<br />
+														</th:block></td>
+												</tr>
+											</table>
+											<br />
+										</div>
+									</th:block>
+								</div>
+							</div>
+
+						</th:block>
+					</div>
+				</div>
+			</th:block>
+		</th:block>
+	</div>
+	<script th:inline="javascript">
+	
+		$('a').on('click', showHideTable);
+		
+		function showHideTable(){
+			actionShowHide(this)
+		}
+		
+		function actionShowHide(_this){
+			var id = $(_this).attr("href").replace("#", "");
+			var span = $(_this).find('span.arrow');
+			var checked = $(_this).parent().find(".batchCheckbox").is(":checked")
+			if (!span.hasClass('up') || checked){
+				span.removeClass('down');
+				span.addClass('up')
+				$("#"+id).addClass("in");
+			}else{
+				span.addClass('down');
+				span.removeClass("up")
+				$("#"+id).removeClass("in");
+			}
+		}
+		
+		$('select[multiple]').multiselect({
+				buttonWidth: '100%',
+				maxHeight: 200,
+				enableFiltering: true,
+				enableCaseInsensitiveFiltering: true,//am adaugat pentru filtru de la report
+				//includeSelectAllOption: true
+			});
+	</script>
+	<div th:replace="fragments/fragments::footer"></div>
+</body>
+</html>

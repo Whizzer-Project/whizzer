@@ -1,0 +1,108 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+	<th:block th:replace="fragments/fragments::libs"></th:block>
+	<link href="style/app.css"  rel="stylesheet" type="text/css"  />
+	<link  href="style/content.css"  rel="stylesheet" type="text/css"  />
+	
+	
+	<link href="style/primeui-1.0-min.css" rel="stylesheet" type="text/css" />
+	<link href="style/jquery-ui.css" rel="stylesheet" type="text/css" />
+	
+	<script th:src="@{/libs/jspdf/jspdf.min.js}" type="text/javascript"></script>
+	<script th:src="@{/libs/xlsx.full.min.js}" type="text/javascript"></script>
+
+	<script th:src="@{/scripts/tracker/common.js}" type="text/javascript"></script>
+	<script th:src="@{/scripts/tracker/component.js}" type="text/javascript"></script>
+	
+	
+	<link href="style/jquery-ui.multidatespicker.css"  rel="stylesheet" type="text/css"  />
+	<link href="style/jqueryDataTable/fixedHeader.dataTables.min.css"  rel="stylesheet" type="text/css"  />
+	<link href="style/jquery.dataTables.min.css"  rel="stylesheet" type="text/css"  />
+	
+	<script th:src="@{/libs/growl.js}"></script>
+	<script th:src="@{/scripts/prime-ui/prime-ui-0.9.5.js}"></script>
+	
+	<script th:src="@{/scripts/jqueryDataTable/jquery.dataTables.min.js}"></script>
+	<script th:src="@{/scripts/jqueryDataTable/dataTables.fixedHeader.min.js}"></script>
+	<script th:src="@{/scripts/jquery/jquery-ui.js}"></script>
+	<script th:src="@{/scripts/jquery/jquery-ui.multidatespicker.js}"></script>
+	<script th:src="@{/scripts/calendar.js}"></script>
+	
+	<meta charset="ISO-8859-1" />
+	<title><th:block th:text="${title}" /></title>
+</head>
+
+
+<body >
+	<header th:replace="fragments/fragments::header"></header>
+<div class="content">
+
+			<input id="apiUri" type="hidden" value="${apiUri}" /> 
+			
+	<TABLE align="center" width="100%">
+		<TBODY>
+			<TR>
+				<TD><div id="message" /></TD>
+			</TR>
+			<TR>
+				<TD align="left">
+					<INPUT th:if="${showButton}" class="action_button" style="width: 100px; color: red; font-weight: normal;"
+						type="button" value="Set Weekends" name="Set Weekends" id="selWeekends" />
+				</TD>
+				<TD align="right"></TD>
+			</TR>
+		</TBODY>
+	</TABLE>
+	<BR />
+	<select id="status" name="status">
+	</select>
+		<INPUT th:if="${showButton}" class="action_button" type="button" id="getDates" value="Save" name="Save" style="width: 50px;" />
+	
+	<input id="code" type="hidden" th:value="${code}" />
+	<center>
+		<input type="hidden" id="id1" th:value="${allDates}" />
+		<div id="datepicker"></div>
+	</center>
+	
+	<table style="margin-left:20px;" cellpadding="0" cellspacing="1" border="0">
+		<tbody>
+			<tr>
+				<td>Note:</td>
+			</tr>
+			<tr style="color:red;text-align: left;">
+				<td>&nbsp;&nbsp;&nbsp;*free days</td>
+			</tr>
+			<tr style="color:black;text-align: left;">
+				<td>&nbsp;&nbsp;&nbsp;**business days</td>
+			</tr>
+		</tbody>
+	</table>
+	<script th:inline="javascript">
+	 var allDates = [];
+	 allDates =/*[[${allDates}]]*/;
+	 </script>
+	</div>
+	<footer th:replace="fragments/fragments::footer"></footer>
+</body>
+</html>

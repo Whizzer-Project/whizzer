@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+	<script th:src="@{/scripts/enrich.js}"></script>
+	<script type="text/javascript" th:inline="javascript">
+	/*<![CDATA[*/
+		$enrich = {}
+		$enrich.button = {add : $$addModifyButton}
+		$enrich.validation = {
+			condition : /*[[#{validationRules.condition}]]*/,
+		}
+		$enrich.table = {
+			name : /*[[#{enrichRules.table.name}]]*/,
+		}
+		$enrich.txfield = /*[[#{enrichRules.txfield}]]*/
+		$enrich.busslist =  /*[[#{enrichRules.busslist}]]*/
+		$enrich.busslistfield =  /*[[#{enrichRules.busslistfield}]]*/
+		$enrich.global = {
+			mandatory : /*[[#{global.mandatory}]]*/,
+		}
+		$enrich.txtype = /*[[#{enrichRules.txtype}]]*/
+		
+	/*]]>*/
+</script>
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+	<body>
+			<input id="apiUri" type="hidden" value="${apiUri}" /> 
+			
+			<div id="tableWrapperEnrich" class="table-wrapper" style="width:100%">
+				<th:block th:if="${enrichAddButton}">
+					<button id="addEnrich" class="submitButton glossy-button glossy-button--purple addButton" style="width: auto;" th:text="#{enrichRules.addRule}">Add Enrich Rule</button>
+				</th:block>
+			</div>		
+<br>
+<br>
+<br>
+	</body>
+</html>

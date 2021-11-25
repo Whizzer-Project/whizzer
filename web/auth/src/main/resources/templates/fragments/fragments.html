@@ -1,0 +1,91 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org">
+<head>
+<th:block th:fragment="libs">
+
+	<link th:href="@{/libs/style/daterangepicker.css}" rel="stylesheet"/>
+	<link th:href="@{/libs/bootstrap/bootstrap.min.css}" rel="stylesheet"/>
+	<link th:href="@{/libs/bootstrap/bootstrap-datetimepicker.min.css}"  rel="stylesheet" type="text/css"  />
+	<link th:href="@{/libs/bootstrap/bootstrap-dialog.min.css}"  rel="stylesheet" type="text/css"  />
+	<link th:href="@{/libs/bootstrap/bootstrap-multiselect.css}"  rel="stylesheet" type="text/css"  />
+	
+	<link th:href="@{/libs/style/content.css}" rel="stylesheet" type="text/css" />
+	<link th:href="@{/libs/style/app.css}" rel="stylesheet" type="text/css" />
+	<link th:href="@{/libs/style/fintpTable.css}" rel="stylesheet" />
+	
+<meta charset="ISO-8859-1" />
+</head>
+<body style="margin: 2px; margin-bottom: 55px">
+	
+	<div id="container">
+	
+		<header th:fragment="header" >
+			<div id="top">
+			</div>
+			<div th:if="${@environment.getProperty('project.type')=='whizzer'}" id="banner" class="navbar navbar-default">
+				<div id="left">
+					<img th:src="@{/images/whizzer/Whizzer logo.png}" alt=""
+						style=" height: 105px">
+				</div>
+				<div id="right">
+					<img th:src="@{/images/whizzer/Grants logos.png}"
+						style="height: 100px;" alt="">
+				</div>
+				<div id="center"></div>
+			</div>
+			<div th:unless="${@environment.getProperty('project.type')=='whizzer'}" id="banner" class="navbar navbar-default">
+				<div id="left">
+					<img th:src="@{/libs/images/allevo1.jpg}" alt="" style="width: 105px; height:45px">					
+			    </div>
+			    <div id="right">
+			    	<img src="https://allevo.ro/wp-content/themes/av/images/flags.png" style="height: 50px;" alt="">
+			    </div>
+			    <div id="center">
+			    	
+			    </div>				    
+			</div>
+			
+		</header>
+
+		<header th:fragment="headerSecond" >
+			<div id="top">
+			</div>									
+		</header>
+
+
+		<footer th:fragment="footer" id="footer" style="position: fixed;bottom: 0; left: 0; width: 100%;">
+			<nav class="navbar navbar-default" style="margin-bottom: 0px;">
+				<ul class="nav navbar-nav">
+					<li><a href="#" class="inactive">&#169;2019 Allevo</a></li>
+				</ul>
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="#">API</a></li>
+					<li><a href="https://fintp.org/category/blog/" target="_blank">Blog</a></li>
+					<li><a href="#">About</a></li>
+				</ul>
+			</nav>
+		</footer>
+	</div>
+</body>
+</html>

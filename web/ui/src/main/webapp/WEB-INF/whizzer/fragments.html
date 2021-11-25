@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en"
+	xmlns:sec="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		var $$messages = {	
+				"cashflowComparison.confirm.delete":/*[[#{cashflowComparison.confirm.delete}]]*/}
+		}
+		/*]]>*/
+	</script>
+	<th:block th:fragment="menu">
+		<li class="main-menu"><a href="#"><th:block th:text="#{header.menuWhizzer}" /></a>
+			<ul>
+				<li >
+					<a th:href="@{/whizzer/profitLossReport?fp=header.menuWhizzer&fp=header.menuWhizzerPL}">
+						<th:block th:text="#{header.menuWhizzerPL}" /></a>
+				</li>	
+				<li >
+					<a style="width:200px" th:href="@{/whizzer/balanceSheetReport?fp=header.menuWhizzer&fp=header.menuWhizzerBS}">
+						<th:block th:text="#{header.menuWhizzerBS}"/></a>
+				</li>	
+				<li >
+					<a style="width:200px" th:href="@{/whizzer/evolutionReport?fp=header.menuWhizzer&fp=header.menuWhizzerEvReport}">
+						<th:block th:text="#{header.menuWhizzerEvReport}"/></a>
+				</li>	
+			</ul>			
+		</li>
+		<li class="main-menu"><a href="#"><th:block th:text="#{header.cashReporting}" /></a>
+			<ul style="width: 272px;">
+				<li>
+					<a style="width:270px" href="#">
+					<th:block th:text="#{header.menuWhizzerBalanceSheetForecasting}"/></a>
+					<ul style="width: 272px;">
+							<li>
+								<a style="width:270px" th:href="@{/whizzer/balanceSheetComparison/input?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerBalanceSheetForecasting&fp=header.generateBalanceSheetforecast}">
+									<th:block th:text="#{header.generateBalanceSheetforecast}"/></a>
+							</li>
+							<li>
+								<a style="width:270px" th:href="@{/whizzer/balanceSheetComparison?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerBalanceSheetForecasting&fp=header.balanceSheetcomparision}">
+									<th:block th:text="#{header.balanceSheetcomparision}"/></a>
+							</li>
+					</ul>
+				</li>
+				<li>
+					<a style="width:270px" href="#">
+					<th:block th:text="#{header.menuWhizzerCashFlowForecasting}"/></a>
+					<ul style="width: 272px;">
+						<li>
+							<a style="width:270px" th:href="@{/whizzer/cashflowForecast?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerCashFlowForecasting&fp=header.inputEstimatedOperations}">
+								<th:block th:text="#{header.inputEstimatedOperations}"/></a>
+						</li>
+						<li>
+							<a style="width:270px" th:href="@{/whizzer/cashflowForecastReport?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerCashFlowForecasting&fp=header.menuWhizzerCashFlowFGenerateCashflowForecast}">
+								<th:block th:text="#{header.menuWhizzerCashFlowFGenerateCashflowForecast}"/></a>
+						</li>
+						<li>
+							<a style="width:270px" th:href="@{/whizzer/cashflowComparison?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerCashFlowForecasting&fp=header.inputAccountBalance}">
+								<th:block th:text="#{header.inputAccountBalance}"/></a>
+						</li>
+						<li>
+							<a style="width:270px" th:href="@{/whizzer/cashflowComparison/report?fp=header.menuWhizzerCashReporting&fp=header.menuWhizzerCashFlowForecasting&fp=header.generateCashflowComparison}">
+								<th:block th:text="#{header.generateCashflowComparison}"/></a>
+						</li>
+					</ul>
+				</li>
+				
+			</ul>
+		</li>
+			
+		<li class="main-menu">
+			<a th:href="@{/whizzer/inputIndicators?fp=header.menuWhizzerInputIndicators}"><th:block th:text="#{header.menuWhizzerInputIndicators}" /></a>
+		</li>	
+	</th:block>
+</body>
+</html>

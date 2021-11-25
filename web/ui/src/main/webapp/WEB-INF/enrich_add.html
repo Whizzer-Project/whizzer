@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+
+<link th:href="@{/style/jquery/query-builder.default.min.css}"
+	rel="stylesheet" type="text/css" />
+<script th:src="@{/libs/jquery/jquery-extendext.js}"></script>
+<script th:src="@{/libs/jquery/doT.js}" type="text/javascript"></script>
+<script th:src="@{/libs/jquery/query-builder.min.js}"></script>
+<script th:src="@{/libs/jquery-ui-1.12.1/jquery-ui.js}"></script>
+<script th:src="@{/scripts/queryBuilder/myFilters.js}"></script>
+
+<script th:src="@{/scripts/enrich_add.js}" ></script>
+<title></title>
+</head>
+<body>
+	<form  method="post" th:action="${formAction}" style="margin: 2% 2%;" th:object="${enrich}" name="enrichForm" id="enrichForm">
+		<input id="enrichId" type="hidden" th:field="*{id}"
+							maxlength="35" th:required="required" class="form-control"/>
+		<div id="addEnrichRules" >
+			<table class="centeredTable" style="width: 100%;">
+				<tbody>
+					<tr>
+						<td><th:block th:text="#{enrichRules.name}" />:</td>
+						<td><input id="nameEnrich" type="text"
+							maxlength="50" th:required="required" class="form-control"/></td>
+					</tr>
+					<tr>
+						<td><th:block th:text="#{enrichRules.predefined}" />:</td>
+						<td><input id="predefinedEnrich" type="checkbox"></td>
+					</tr>
+	
+					<tr id="bussListRow">
+						<td><th:block th:text="#{enrichRules.busslist}" />:</td>
+						<td><div id="bussListDivEnrich"></div></td>
+					</tr>
+					<tr id="bussListFieldRow">
+						<td style="vertical-align: top;"><th:block th:text="#{enrichRules.busslistfield}" />:</td>
+						<td><div id="bussListFieldDivEnrich"><select class="form-control"></select></div></td>
+					</tr>
+					<tr id="optionRow">
+						<td><th:block th:text="#{enrichRules.txType}"/>:</td>
+						<td><select id="optionidEnrich" class="form-control"><option></option></select></td>
+					</tr>
+					<tr id="patternRow">
+						<td><th:block th:text="#{enrichRules.pattern}" />:</td>
+						<td><input type="text" id="patternEnrich" class="form-control"></td>
+					</tr>
+					<tr>
+						<td style="vertical-align: top;"><th:block th:text="#{enrichRules.txfield}" />:<br><th:block th:text="#{enrichRules.toBeEnriched}" /></td>
+						<td>
+							<span id="enrichTxFieldTip" data-toggle="tooltip" data-placement="top" title="">
+								<input id="txListFieldEnrich" class="form-control" readonly style="cursor:copy;"></input>
+							</span>
+						</td>
+						<td></td>
+					</tr>
+					<tr>
+						<td><th:block th:text="#{global.mandatory}" />:</td>
+						<td><div style="display:inline-block"><input id="mandatoryEnrichRule" type="checkbox"/></div></td>
+					</tr>
+			
+				</tbody>
+			</table>
+			<div style='margin: 0 auto; padding: 10px 10px; overflow-y: auto;' id ="divConditionEnrich">
+			
+				<span style="display:block;" th:text="#{enrichRules.condition}"></span>
+				<div id="builderEnrich"></div>
+				</div>
+			</div>
+	</form>
+	<button th:if="${enrichUpdButton}" id="SaveEnrich" class="btn create submitButton glossy-button glossy-button--purple" style="width: auto;" th:text="#{enrichRules.CreateRule}"></button>
+	<button id="CancelEnrich" class="btn cancel submitButton glossy-button glossy-button--purple" style="width: auto;" th:text="#{enrichRules.CancelRule}"></button>
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		var listsMetaData = /*[[${listsMetaData}]]*/
+		$$enrichData = /*[[${enrich}]]*/
+		$$listEnrich = /*[[${listEnrich}]]*/
+		$$button = /*[[#{${button}}]]*/
+		$$options = /*[[${options}]]*/
+		
+		/*]]>*/		
+	</script>
+	<br>
+	<br>
+	<br>
+</body>
+</html>

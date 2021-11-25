@@ -1,0 +1,159 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body class="modal">
+	<input id="apiUri" type="hidden" value="${apiUri}" />
+	<form method="post" th:action="${formAction}" style="margin: 2% 10%;"
+		th:object="${externalAccount}">
+		<input name="id" type="hidden" th:value="${externalAccount.id}" />
+		<table class="centeredTable" style="width: auto;">
+			<tbody>
+				<tr>
+					<td><th:block th:text="#{externalAccount.entityName}" />:</td>
+					<td id = "entityName">
+						<select name ="entityName" id=externalAccountName th:field="*{entityName}"
+							 th:required="required" class="form-control">
+								<option value=""></option>
+								<option th:each="n : ${entityNames}" th:text="${n}" th:value="${n}" />
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalAccount.currency}" />:</td>
+					<td><input id="add" class="uppercase form-control" type="text"
+						onkeyup="this.value = this.value.toUpperCase();" pattern=".{3}"
+						th:field="*{currency}" maxlength="3" th:required="required" /></td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalAccount.accountNumber}" />:</td>
+					<td><input id="iban" type="text" class="uppercase form-control"
+						onkeyup="this.value = this.value.toUpperCase();"
+						th:field="*{accountNumber}" maxlength="35"
+						autocomplete="on" th:required="required"
+						pattern="[A-Z]{2,2}[0-9]{2,2}[a-zA-Z0-9]{1,30}" /></td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalAccount.bic}" />:</td>
+					<td>					
+						<select name="bic" id="bic" th:field="*{bic}" class="form-control">
+						<option value=""></option>
+							<option th:each="bic : ${bics}"
+								th:value="${bic.get('bic')}" th:text="${bic.get('bic')}" />
+						</select>					
+					</td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalAccount.locked}" />:</td>
+					<td><input type="checkbox" name="locked" th:field="*{locked}"
+						value="Y" /></td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalAccount.defaultAccount}" />:</td>
+					<td><input type="checkbox" name="defaultAccount"
+						th:field="*{defaultAccount}" value="Y" />
+						<span style="display:none" class="errorMessage" id="defaultError" th:text="#{externalAccount.defaultError}"></span></td>
+				</tr>
+				<tr>
+					<td style="vertical-align: top;"><th:block th:text="#{externalAccount.description}" />:</td>
+					<td><textarea id="address" th:field="*{description}" class="form-control"
+							maxlength="70"></textarea></td>
+
+				</tr>
+				<tr>
+					<td style="vertical-align: top;"><th:block th:text="#{externalAccount.otherDetails}" />:</td>
+					<td><textarea id="address" th:field="*{otherDetails}" class="form-control"
+							maxlength="70"></textarea></td>
+				</tr>
+				<tr>
+					<td><th:block th:text="#{externalEntity.maxAmount}" />:</td>
+					<td><input id="externalEntityAmount" type="text" th:field="*{maxAmount}" class="form-control"
+						maxlength="20" pattern="^[\d]{0,17}(\.[\d]{1,2})?$" /></td>
+				</tr>				
+			</tbody>
+		</table>
+	<script th:inline="javascript">
+	//<![CDATA[
+	var bics = /*[[${bics}]]*/;
+	
+	registerIBANValidation();
+
+	if ($('form').attr('action') == "external-accounts/update"){
+    	  //  var option = $('#entityName').find(":selected").text();
+			//var input = $('<input type="text" id="add" name="entityName" value="'+option+'" readonly="readonly" />');
+			//$("#entityName").empty();
+			//$("#entityName").append(input);
+			//selectBic(/*[[${externalAccount.bic}]]*/);
+		$('#externalAccountName').attr('disabled', true);
+	}
+	
+	var defaultId=/*[[${defaultId}]]*/
+	var defaultAccount = defaultId>0?true:false
+	
+	$('#externalAccountName').click(function(){
+		if ($('#externalAccountName').val()){
+			defaultAccount = false
+			$.ajax({
+					type: "GET",
+					url: "./external-accounts/getDefaultAccount?name=" + $(this).val(),
+					success: function(data){
+						if (!isNaN(data)){
+							id = $('[name=id]').val()
+							if (0 == data && id == 0){
+								$('#defaultAccount1').attr('checked', 'checked')
+							}
+							else if(id != data){
+								defaultAccount = true
+							}
+						}
+						checkIfChecked()
+					},
+					error: function(error){
+					},
+					complete: function(){
+					},
+			})
+		}
+	})
+	
+	$('#defaultAccount1').change(function(){
+		checkIfChecked()
+	})
+	
+	function checkIfChecked(){
+		if (defaultAccount && $('#defaultAccount1:checked').length>0){
+			$('#defaultError').show()
+		}else{
+			$('#defaultError').hide()
+		}
+	}
+	//else
+		//accountValidation(bics);	
+		//]]> 
+	</script>
+	</form>
+</body>
+</html>

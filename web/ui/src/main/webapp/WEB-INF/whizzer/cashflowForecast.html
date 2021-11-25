@@ -1,0 +1,118 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+	
+	<th:block th:replace="fragments/fragments::libs"></th:block>
+	<script type="text/javascript" th:inline="javascript">
+	//<![CDATA[
+		
+	$(function(){
+		var table = $('<table >').addClass("fintpTable display").css("width", "100%");
+		$('.table-wrapper').append(table);
+		
+		if($("#entity").val()!=""){
+			var entityName = $("#entity").val();
+			
+			table.datatablesInit({
+				actions: {
+					add: {
+						url: 'cashflowForecast/add?entity='+ encodeURIComponent(entityName),
+						label: [[#{cashflowForecast.add}]],
+						dialog:{
+	                        title : [[#{cashflowForecast.add}]],
+	                        size:'size-wide'
+	                 	 },
+					},
+					get: 'cashflowForecast/page?entity='+ entityName, 
+					edit: {
+						url:'cashflowForecast/{rowid}/edit',
+						dialog:{
+	                        title : [[#{cashflowForecast.add}]],
+	                        size:'size-wide'
+	                 	 },
+					},
+					delete: {
+						url: "cashflowForecast/{rowid}/delete",
+						confirm: $$messages["cashflowComparison.confirm.delete"] 
+					},
+				},
+				size:"size-large",
+				columns: [ 
+					{ "title": [[#{cashflowForecast.opType}]], "data": "operationtype" },
+					{ "title": [[#{cashflowForecast.opSubType}]], "data": "opretionsubtype" },
+					{ "title": [[#{cashflowForecast.typeRevenueExpense}]], "data": "revenueexpensetype" },
+					{ "title": [[#{cashflowForecast.typeInformation}]], "data": "informationtype" },
+					{ "title": [[#{cashflowForecast.payerSupplierName}]], "data": "payersuppliername" },
+					{ "title": [[#{cashflowForecast.amount}]], "data": "operationamount", "className": 'dt-body-right', "render": $.fn.dataTable.render.number( ',', '.', 2 )  },
+					{ "title": [[#{cashflowForecast.currency}]], "data": "operationcurrency" },
+					{ "title": [[#{cashflowForecast.issueDate}]], "data": "issuedate" ,
+						"render": function (data, type, row, meta){
+							return (data!== null)?moment(data).format('YYYY-MM-DD'):"" 
+						}
+					},
+					{ "title": [[#{cashflowForecast.paymentDueDate}]], "data": "paymentduedate" },
+					{ "title": [[#{cashflowForecast.maturityDate}]], "data": "maturitydate" ,
+							"render": function (data, type, row, meta){
+								return (data!== null)?moment(data).format('YYYY-MM-DD'):"" 
+							}
+					},
+					{ "title": [[#{cashflowForecast.IBAN}]], "data": "operationiban" },
+				
+				]
+			});
+		}
+		
+		$("#entity").change(function(){
+			$("#searchForm").submit()
+		});
+		
+	});
+	
+	//]]>
+</script>
+<head>
+
+
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+	<body>
+		<header th:replace="fragments/fragments::header"></header>
+		<form id="searchForm">
+			<label for="entity" th:text="#{whizzer.entity}"></label>
+			<select class="form-control excludePdf" name="entity"  id="entity"  style="width:250px;display:inline-block">
+				<option></option>
+				<option th:each="entityName : ${internalEntities}"
+					th:value="${entityName}" th:utext="${entityName}" th:selected="(${entity == entityName})" />
+			</select>
+			<div th:each="fp : ${param.fp}">
+				<input type="hidden" name="fp" th:value="${fp}">
+			</div>
+		</form>
+			
+		<div class="table-wrapper">
+
+		</div>
+		<footer th:replace="fragments/fragments::footer" id="footer"></footer>	
+	</body>
+</html>

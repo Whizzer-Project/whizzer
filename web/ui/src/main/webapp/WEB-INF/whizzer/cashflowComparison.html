@@ -1,0 +1,158 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+	
+	<th:block th:replace="fragments/fragments::libs"></th:block>
+	<script type="text/javascript" th:inline="javascript">
+	//<![CDATA[
+		
+	$(function(){
+		var table = $('#table');
+		$('#dateCashFlowReport').daterangepicker({
+			singleDatePicker: true,
+			showDropdowns: true,
+			minYear: 1901,
+			autoUpdateInput:true,
+			startDate:$("#dateCashFlowReport").val()!=""? $("#dateCashFlowReport").val():new Date(),
+			locale: {
+				format: 'YYYY-MM-DD'
+			}
+		});
+		
+		if($("#entity").val()!="" && $("#dateCashFlowReport").val()!=""){
+			table.datatablesInit({
+				actions: {
+					add: {
+						url: 'cashflowComparison/add?entity='+ encodeURIComponent($("#entity").val()),
+						label: [[#{cashflowComparison.add}]],
+						dialog:{
+	                        title : [[#{cashflowComparison.add}]],
+	                        size:'size-wide'
+	                 	 },
+					},
+					get: 'cashflowComparison/page?'+$("#formFilters").serialize(),
+					edit: {
+						url:'cashflowComparison/{rowid}/edit?entity='+ encodeURIComponent($("#entity").val()),
+						dialog:{
+	                        title : [[#{cashflowComparison.add}]],
+	                        size:'size-wide'
+	                 	 },
+					},
+					delete: {
+						url: "cashflowComparison/{rowid}/delete",
+						confirm: $$messages["cashflowComparison.confirm.delete"] 
+					},
+				},
+				drawCallback: function(){
+					if($(".dataTables_empty").length==0){
+						$("#total").html(addThousandsSeparator([[${amount}]]));
+					}else{
+						$("#table tfoot").find("th").empty()
+					}
+				},
+				size:"size-large",
+				columns: [ 
+					{ "title": [[#{cashflowComparison.balanceiban}]], "data": "balanceiban", "className": 'dt-body-left', },
+					{ "title": [[#{cashflowComparison.accountbalanceamount}]], "data": "accountbalanceamount", "className": 'dt-body-right', "render": $.fn.dataTable.render.number( ',', '.', 2 ), },
+					{ "title": [[#{cashflowComparison.accountbalancecurrency}]], "data": "accountbalancecurrency", "className": 'dt-body-left', },
+					{ "title": [[#{cashflowComparison.exchangerate}]], "data": "exchangerate", "className": 'dt-body-right', "render": $.fn.dataTable.render.number( ',', '.', 2 ) },
+					{ "title": [[#{cashflowComparison.companybalanceamount}]], "data": "ronaccountbalanceamount", "className": 'dt-body-right', "render": $.fn.dataTable.render.number( ',', '.', 2 ) },
+				] ,
+			});
+			
+			
+		}else{
+			table.css("display","none")
+		}
+		function addThousandsSeparator(num) {
+			num = "" + num;
+			var n = num.replace(/,/g, '');
+		    var x = n.split('.');
+		    var x1 = x[0];
+		    var x2 = x.length > 1 ? '.' + x[1] : '';
+		    var rgx = /(\d+)(\d{3})/;
+		    while (rgx.test(x1)) {
+		        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+		    }
+		    return x1 + x2.substring(0, 3)+(num.indexOf(".")!=-1?"":".00");
+		}
+
+		$("#entity").change(function(){
+			$("#formFilters").submit()
+		});
+		
+		$("#dateCashFlowReport").change(function(){
+			if($("#entity").val()!=""){
+				$("#formFilters").submit()
+			}
+			
+		});
+	});
+	var dateISO = [[${dateISO}]]
+	//]]>
+</script>
+<head>
+
+
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+	<body>
+		<header th:replace="fragments/fragments::header"></header>
+		<div class="container-fluid">
+				<div class="row">
+				 <div class="col-md-6 excludePdf">
+					 <form action="?" method="GET" id="formFilters">
+						<label for="entity" th:text="#{whizzer.entity}"></label>
+						<select class="form-control excludePdf" name="entity"  id="entity"  style="width:250px;display:inline-block">
+							<option></option>
+							<option th:each="entityName : ${internalEntities}"
+								th:value="${entityName}" th:utext="${entityName}" th:selected="(${entity == entityName})" />
+						</select>
+	
+						<label for="dateCashFlowReport">Data sold cont (Account Balance Date)</label>
+						<input id="dateCashFlowReport" name="date" th:value="${date}" class="form-control excludePdf" style="width:110px;display:inline-block"/>
+		
+						<button  class="btn btn-sm">Search</button>
+						
+						<div th:each="fp : ${param.fp}">
+							<input type="hidden" name="fp" th:value="${fp}">
+						</div>
+					</form>
+				</div>
+			  </div>
+		 </div>
+		<div class="table-wrapper">
+			<table id="table" class="fintpTable display" style="width:100%">
+				<tfoot>
+		            <tr>
+		                <th colspan="4" style="text-align:right">Sold companie (Company Balance ) : </th>
+		                <th><span  id="total"></span><span> RON</span></th>
+		                <th></th>
+		            </tr>
+		        </tfoot>
+			</table>
+		</div>
+		<footer th:replace="fragments/fragments::footer" id="footer"></footer>	
+	</body>
+</html>

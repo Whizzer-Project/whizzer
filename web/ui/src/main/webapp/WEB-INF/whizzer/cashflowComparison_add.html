@@ -1,0 +1,117 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+<!-- <script th:src="@{/scripts/whizzer/cashflowComparison.js}"></script> -->
+
+</head>
+<body class="modal">
+	<form method="post" th:action="${formAction}" style="margin: 2% 18%;"
+		th:object="${cashflowComparison}">
+		<table id="editTable" class="centeredTable" style="width: auto; border-collapse:separate;border-spacing:0 5px;">
+			<tbody>
+				<tr>
+					<td>
+						<input name="id" type="hidden" th:field="*{id}" />
+						<input id="entityField" name="entity" type="hidden" th:field="*{entity}" />
+						<input name="accountbalancedate" type="hidden" th:field="*{accountbalancedate}" />
+					
+						<th:block th:text="#{cashflowComparison.balanceiban}" />:</td>
+					<td>
+						<select class="form-control" name="IBAN" id="IBAN" th:field="*{balanceiban}" style="text-align: left;" th:required="required">
+							<option th:each="internalAccEntity : ${internalAccFilteredByName}"
+								th:value="${internalAccEntity.accountNumber}" th:text="${internalAccEntity.accountNumber}" />
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td><th:block th:utext ="#{cashflowComparison.accountbalanceamount}" />:</td>
+					<td><input id="accountbalanceamount" type="text" th:field="*{accountbalanceamount}" class="form-control"
+						maxlength="35" th:required="required" /></td>
+				</tr>
+				<tr>
+					<td><th:block th:utext="#{cashflowComparison.accountbalancecurrency}" />:</td>
+					<td><input id="accountbalancecurrency" type="text" th:field="*{accountbalancecurrency}" class="form-control"
+						maxlength="35" th:required="required" readonly /></td>
+				</tr>
+				<tr>
+					<td><th:block th:utext="#{cashflowComparison.exchangerate}" />:</td>
+					<td><input id="exchangerate" type="text" th:field="*{exchangerate}" class="form-control"
+						maxlength="35" /></td>
+				</tr>
+				<tr>
+					<td><th:block th:utext="#{cashflowComparison.companybalanceamount}" />:</td>
+					<td><input id="ronaccountbalanceamount" type="text" th:field="*{ronaccountbalanceamount}" class="form-control"
+						maxlength="35" readonly /></td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+	
+	<script>
+		//<![CDATA[
+		$(function(){
+			$("#editTable").find("#accountbalancedate").val(dateISO)
+			$("#editTable").find("#entityField").val($("#entity").val())
+			$("#accountbalanceamount, #exchangerate").off().keyup(function(){
+				$("#ronaccountbalanceamount").val(formatAmmount($("#accountbalanceamount").val()*($("#exchangerate").val()!=""?$("#exchangerate").val():1)));
+			})
+			/* $("#accountbalancecurrency").off().keyup(function () {  
+	            $(this).val($(this).val().toUpperCase());  
+	        });  */ 
+	        
+	        
+			function formatAmmount(value){
+				 if( isNaN( parseFloat( value ) ) || value==0) return;
+	             return parseFloat(value).toFixed(2);
+			}
+
+			changeCurrency();
+			
+			$("#IBAN").change(function(){
+				changeCurrency();
+			})
+			
+			function changeCurrency(){
+				$.ajax({
+					type: "GET",
+					url: "cashflowComparison/getCorespCurrency?iban=" + encodeURIComponent($("#IBAN").val()) + "&entity=" + encodeURIComponent($("#entity").val()),
+					success: function(data){
+						$("#editTable").find("#accountbalancecurrency").val(data);
+						$("#exchangerate").attr("disabled",data=="RON").val(data=="RON"?"":$("#exchangerate").val())
+						$("#ronaccountbalanceamount").val(formatAmmount($("#accountbalanceamount").val()*($("#exchangerate").val()!=""?$("#exchangerate").val():1)));
+					},
+					error: function(error){
+					},
+					complete: function(){
+					},
+				})
+			}
+		});
+		//]]>	
+	</script>
+	
+</body>
+</html>

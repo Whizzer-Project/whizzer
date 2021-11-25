@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+<link th:href="@{/style/validationxsd.css}" rel="stylesheet" />
+<script th:src="@{/libs/jquery-ui-1.12.1/jquery-ui.js}"></script>
+<script th:src="@{/scripts/templateConfig.js}"></script>
+<script th:src="@{/scripts/validationxsd.js}"></script>
+
+<meta charset="ISO-8859-1">
+<title><th:block th:text="${title}" /></title>
+
+</head>
+
+<body>
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+			$$addModifyButton=/*[[${addButtonPermision}]]*/
+			$$fields=/*[[${fields}]]*/
+			$$project=/*[[${project}]]*/
+			$$template=/*[[${template}]]*/
+		/*]]>*/
+	</script>
+	<header th:replace="fragments/fragments::header"></header>
+	<div class="content">
+		<input id="apiUri" type="hidden" value="${apiUri}" />
+		<div id='leftTop'
+			style='width: 50%; float: left; overflow-y: auto; height: content'>
+			<div style="float: left; display: block;">
+				<div style="display: table; margin: auto;">
+					<span th:text=#{template.config.list}>List of templates: </span>&nbsp;
+					<select id="template" name="template" class="form-control">
+						<option></option>
+						<option th:each="template: ${templates}" th:value="${template.id}"
+							th:selected="${template.id}==${templateId}"
+							th:text="${template.messagetype}"></option>
+					</select>
+				</div>
+			</div>
+			<div class="validationxsd">
+				<div id="validationxsd" th:if="${template}"
+					th:utext="${template.validationxsd}"></div>
+			</div>
+		</div>
+		
+		<th:block th:if="${template}">
+			<div style='width: 50%; float: left; overflow-y: auto;'>
+				<ul class="nav nav-tabs">
+					<li class="active"><a data-toggle="tab" href="#home" th:text="#{enrichRules.templateNavTab}"></a></li>					
+					<li><a data-toggle="tab" href="#menu2" th:text="#{validationRules.templateNavTab}"></a></li>
+					<li><a data-toggle="tab" href="#menu3" th:text="#{editRules.templateNavTab}"></a></li>
+					<li><a data-toggle="tab" href="#menu1" th:text="#{templatesConfigDetailed.templateNavTab}"></a></li>
+				</ul>
+				<div class="tab-content">
+					<div id="home" class="tab-pane fade in active">
+						<h3 th:text="#{enrichRules.templateTabContent}"></h3>
+						<div id="enrich_rules">
+							<span style="display: block">Loading Enrich...</span>
+						</div>
+					</div>
+					<div id="menu1" class="tab-pane fade">
+						<h3 th:text="#{templatesConfigDetailed.templateTabContent}"></h3>
+						<div id="config_detailed">
+							<span style="display: block">Loading Detailed...</span>
+						</div>
+					</div>
+					<div id="menu2" class="tab-pane fade">
+						<h3 th:text="#{validationRules.templateTabContent}"></h3>
+						<div id="validation_rules"></div>
+					</div>
+					<div id="menu3" class="tab-pane fade">
+						<h3 th:text="#{editRules.templateTabContent}"></h3>
+						<div id="edit_rules"></div>
+					</div>
+				</div>
+			</div>	
+		</th:block>
+	</div>
+	
+	<div id="xPathOptions" class="modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Select one options:</h5>
+
+				</div>
+				<div id="addxPath" class="modal-body"></div>
+
+			</div>
+		</div>
+	</div>
+	
+	<footer th:replace="fragments/fragments::footer" id="footer"></footer>
+
+</body>
+</html>

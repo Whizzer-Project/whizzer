@@ -1,0 +1,279 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+
+<link th:href="@{/style/reports.css}" rel="stylesheet" />
+
+<link th:href="@{/style/reportsForm.css}" rel="stylesheet" />
+<script th:src="@{/scripts/reports.js}"></script>
+
+<link th:href="@{/style/sidebar.css}" rel="stylesheet" />
+<script th:src="@{/scripts/sidebar.js}"></script>
+
+
+<link rel="stylesheet" type="text/css"
+	href="https://cdn.datatables.net/1.10.18/css/jquery.dataTables.min.css" />
+<link rel="stylesheet" type="text/css"
+	href="https://cdn.datatables.net/buttons/1.5.6/css/buttons.dataTables.min.css" />
+
+<script type="text/javascript"
+	src="https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript"
+	src="https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript"
+	src="https://cdn.datatables.net/buttons/1.5.6/js/buttons.colVis.min.js"></script>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+<link rel="stylesheet" type="text/css"
+	th:href="@{/style/beautifulDialog.css}" />
+</head>
+<body>
+
+	<div th:replace="fragments/fragments::header"></div>
+
+
+	<div class="content">
+		<div id="breadcrumb-page">
+			<input type="hidden" value="Report" /> <input type="hidden"
+				th:value="${param.businessArea[0]}" />
+		</div>
+		<h2 id="queueName">
+			<th:block th:text="${param.businessArea[0]}" />
+		</h2>
+		<!-- SEARCH CRITERIA -->
+		<div id="searchCriteria">
+			<!-- <b><th:block th:text="#{reports.criteria}" /></b>
+			<th:block th:text="#{reports.businessArea}" />
+			: <b><th:block th:text="${param.businessArea[0]}" /></b>
+			 <th:block
+				th:if="${not #strings.isEmpty(param.filter_messagetype_exact)}">
+				<th:block th:text="#{reports.headerMsgtype}" />: <b><th:block
+						th:text="${param.filter_messagetype_exact[0]}" /></b>
+			</th:block> -->
+			<span id="dynamicSearch"></span>
+			<!-- 	dynamic fields -->
+		</div>
+		<br />
+		<div>
+			<div class="sidebar">
+				<span class="title">Filter</span>
+
+				<div>
+					<select class="savetemplate" name="filtername" id="filtername">
+						<option></option>
+						<option th:each="template : ${filterNames}" th:value="${template}"
+							th:text="${template}"></option>
+					</select>
+					<button value="Save" id="saveFilter"
+						style="position: absolute; top: 0px; margin-left: 320px; margin-top: 7px; padding-left: 5px; padding-top: 0px; padding-right: 5px; padding-bottom: 0px;">
+						<span class="glyphicon glyphicon-floppy-disk"></span>
+					</button>
+					<button value="Remove" id="removeFilter"
+						style="position: absolute; top: 0px; margin-left: 350px; margin-top: 7px; padding-left: 5px; padding-top: 0px; padding-right: 5px; padding-bottom: 0px;">
+						<span class="glyphicon glyphicon-floppy-remove"></span>
+					</button>
+				</div>
+
+				<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+				<form id="messagesForm" th:action="@{general/search}"
+					class="form-horizontal" method="get">
+					<div class="panel-group">
+						<div id="filter-payments" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<div id="transactionType">
+									<label class="col-md-4 control-label"><th:block
+											th:text="#{reports.headerMsgtype}"></label>
+									<div class="col-md-8">
+										<select id="0" name="filter_messagetype_exact"
+											class="form-control 0" style="width: 83%">
+											<option selected="selected"></option>
+										</select>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- dynamic insert block -->
+					<div class="row">
+						<div class="form-group text-center">
+							<input type="submit" id="search"
+								class="submitButton glossy-button glossy-button--purple"
+								th:value="#{reportsForm.search}" style="width: inherit"></input>
+							<input type="button" id="rst"
+								class="submitButton glossy-button glossy-button--purple"
+								th:value="#{action.clear}" style="width: inherit"></input>
+						</div>
+					</div>
+					<input type="hidden" name="reportHeader" id="reportHeader"></input>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<button id="filter" class="btn btn-sm" onclick="openNav()">
+			<span class="glyphicon glyphicon-filter"></span>Filter
+		</button>
+		<button id="ToPDF" class="btn btn-sm">
+			<span class="glyphicon glyphicon-save"></span>Export PDF
+		</button>
+		<button id="ToExcel" class="btn btn-sm">
+			<span class="glyphicon glyphicon-save"></span>Export Excel
+		</button>
+
+		<button id="ToShowHide" class="btn btn-sm"
+			style="position: absolute; right: 10px;"
+			th:text="#{action.column.showhide}">Show/Hide Columns</button>
+
+		<th:block th:unless="${businessArea == 'outstanding'}">
+			<div class="btn btn-sm" style="position: absolute; left: 280px;">
+				<input id="live" name="schema" type="radio" value="Live"
+					th:checked="${type == 'live'} ? true:false " />Live <input
+					id="archive" name="schema" type="radio"
+					th:checked="${type == 'archive'} ? true:false" />Archive
+			</div>
+		</th:block>
+	</div>
+
+	<!-- dynamic -->	
+	<div id="showTableHere">
+	</div>
+
+	<script th:inline="javascript">
+		// <![CDATA[
+			
+		var filters=/*[[${filterNames}]]*/
+		//var columnsSelected = [];
+		var checkeds = [];
+		var params = /*[[${param}]]*/
+		var $$project = /*[[${project}]]*/
+		$('#params > input[name="params"]').val(JSON.stringify(params));
+		params['columns'] = [];	
+		params['columnsSel'] = []
+		var actionColumnShowHide = /*[[#{action.column.showhide}]]*/
+		
+		var selectedColumns = /*[[${param.columns}]]*/
+		
+		if (selectedColumns === null){
+			selectedColumns = [];
+		}
+// 			var businessArea = /*[[${param.businessArea[0]}]]*/
+			
+		function formatNumberWithCommasPerThousand(number) {
+		    return number.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+		}
+		// ]]>
+	</script>
+
+	<form method="get" id="export">
+		<div id="params">
+			<input name="params" type="hidden" />
+		</div>
+	</form>
+
+	<div th:replace="fragments/fragments::footer"></div>
+
+
+	<!-- Modal -->
+	<div class="modal-body" id="selectedColumns" style="display: none">
+		<label for="showColumnsFirst"
+			style="display: block; vertical-align: middle;"> <input
+			type="checkbox" id="showColumnsFirst" name="showColumnsFirst"
+			onclick="checkEvent(this)"
+			style="margin: 0px; vertical-align: middle;"
+			th:text="#{action.checkbox.select.all}">
+		</label>
+	</div>
+
+	<!-- end modal -->
+
+	<!-- show filter -->
+	<div id="filter" style="display: none">
+		<div class="col-md-6" style="width: 100%">
+			<div class="form-group">
+				<div id="transactionType">
+					<label> <th:block th:text="#{reports.headerMsgtype}" />
+					</label>
+					<div>
+						<select id="0" name="filter_messagetype_exact"
+							class="form-control" style="width: 100%">
+							<option selected="selected"></option>
+						</select>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row filters-row">
+			<div class="col-md-6">
+				<!-- inserted from js -->
+			</div>
+			<div class="col-md-6">
+				<!-- inserted from js -->
+			</div>
+		</div>
+		<div id="toggle" class="results-row" style="display: none;">
+			<table style="text-align: center;" class="table">
+				<tr>
+					<!-- inserted from js -->
+				</tr>
+				<tr>
+					<!-- inserted from js -->
+				</tr>
+			</table>
+			<input type="button"
+				class="submitButton glossy-button glossy-button--purple"
+				th:value="#{reportsForm.done}" id="closeHeadersButton" />
+		</div>
+	</div>
+	<!-- end show filter -->
+
+	<!-- input checkbox -->
+	<label for="showColumns" id="showColumns"
+		style="display: none; vertical-align: middle;">
+		<input checked=true type="checkbox" name="showColumns" value="-1"
+		onclick="checkEvent(this)" style="vertical-align: middle; margin: 0px">
+	</label>
+	<!-- end input checkbox -->
+
+	<!-- group box -->
+
+	<div class="panel" style="display: none" id="masterlabel">
+		<div class="panel-heading" style="border-bottom: 1px solid #FFF;">
+			<h4 class="panel-title" style="width: 100%">
+				<a data-toggle="collapse" href="#filter-payments"
+					style="box-sizing: border-box; width: 94%; display: inline-block">Payments<span
+					class="arrow down"></span></a>
+			</h4>
+		</div>
+		<div id="filter-payments" class="panel-collapse collapse">
+			<div class="panel-body"></div>
+		</div>
+
+	</div>
+
+	<!-- end group box -->
+</body>
+</html>

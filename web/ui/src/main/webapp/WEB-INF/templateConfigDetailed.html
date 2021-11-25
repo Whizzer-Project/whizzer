@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+	<script type="text/javascript" th:inline="javascript">
+		//<![CDATA[
+			templateText = {}
+			templateText.condition = /*[[#{validationRules.condition}]]*/
+			templateText.visible = /*[[#{templatesConfigDetailed.visible}]]*/
+			templateText.name = /*[[#{templatesConfigDetailed.Name}]]*/
+			templateText.field = /*[[#{templatesConfigDetailed.txfield}]]*/
+			templateText.bussList = /*[[#{templatesConfigDetailed.busslist}]]*/
+			templateText.listField = /*[[#{templatesConfigDetailed.busslistfield}]]*/
+			templateText.predifined = /*[[#{templatesConfigDetailed.predifined}]]*/
+		//]]>
+		</script>
+<!-- 		<script th:src="@{/scripts/templateConfigDetailed.js}"></script> -->
+	<title>Config detailed</title>
+</head>
+<body>
+	<th:block th:fragment="templateDetailed" id="templateDetailed">
+		<div>
+			<th:block th:if="${templateAddButton==true}">
+				<button id="addTemplateConfigDetailed" class="submitButton glossy-button glossy-button--purple addButton" 
+						style="width: auto;" th:text="#{templatesConfigDetailed.addRule}">Add Enrich Rule</button>
+			</th:block>
+			<div class="table-wrapper1" style="width:100%"></div>
+		</div>
+	</th:block>
+	<script type="text/javascript" th:inline="javascript">
+		if ([$$addModifyButton].includes(true)){
+			delTemplate = {
+				url: "{rowid}/delete",
+				confirm: $$messages["enrichRules.confirm.delete"] ,
+				callBack: function(url){getPageByUrl(url,"#config_detailed")},
+			}
+			editTemplate = {
+				url: "{rowid}/edit",
+				callBack: function(url){getPageByUrl(url,'#config_detailed')},
+			}
+		}
+	
+	$("#addTemplateConfigDetailed").click(function(){
+		getPageByUrl("add", "#config_detailed")
+	})	
+	
+$(function(){
+	
+	var table = $('<table>').addClass("fintpTable display").css('width', '100%')
+	$('.table-wrapper1').append(table);
+	
+		table.datatablesInit({
+			actions: {
+				get: 'page?templateId=' + $('#template').val(),
+				'edit': editTemplate,
+				'view': {
+					url: '{rowid}/view',
+					dialog:{
+                    	title : templateText.condition,
+                    },
+                    viewBtn : function viewBtn(row){
+                        return !jQuery.isEmptyObject(row.conditions);
+                    }
+				},
+				'delete': delTemplate,
+			},
+			sortColumn: 0,
+			columns: [
+//			filterName permit to create default a filter
+				{ "title": templateText.visible, "data": "visible", "name":  {"filterType": "boolean"}, 
+					"className" : 'dt-body-center',
+					"headerExtra": {
+						"data-filter": "checkbox",
+						"data-datasource": '["true","false"]'
+					},
+					"render":function ( data, type, row, meta ) {
+						return (data==true?'<span class="glyphicon glyphicon-ok" style="color:green"/>':"");
+						},
+				},
+				{ "title": templateText.name, "data": "fieldlabel"},
+				{ "title": templateText.field, "data": "fieldxpath",
+					"render":function ( data, type, row, meta ) {
+						return (data!==null?data.split('/').join('/ '):"");
+					},
+				},
+				{ "title": templateText.bussList, "data": "busslist"},
+				{ "title": templateText.listField, "data": "busslistfield"},
+				{ "title": templateText.predifined, "data": "txtemplatesconfigoption", 
+					"filtered":"false","name": {filterType: "notnull"},	
+					"className" : 'dt-body-center',
+					"headerExtra": {
+						"data-filter": "checkbox",
+						"data-datasource": '[null]'
+					},
+					"render":function ( data, type, row, meta ) {
+						return (data!==null?'<span class="glyphicon glyphicon-ok" style="color:green"/>':"");
+					},
+				},
+				{ "title": "id", "data": "configid", "visible":false, "name":"configid" },
+			],
+		});
+	
+	
+})
+	</script>
+	<br>
+		<br>
+		<br>
+</body>
+</html>

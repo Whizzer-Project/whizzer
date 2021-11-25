@@ -1,0 +1,101 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+	<th:block th:replace="fragments/fragments::libs"></th:block>
+	<link rel="stylesheet" type="text/css" href="style/app.css" />
+	<link rel="stylesheet" type="text/css" href="style/content.css" />
+
+	<meta charset="ISO-8859-1" />
+	<title><th:block th:text="${title}" /></title>
+</head>
+<script th:src="@{/libs/moment/moment.js}" type="text/javascript"></script>
+<script th:src="@{/scripts/utils/utils.js}"></script>
+<script th:src="@{/scripts/paymentCreate.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+/*<![CDATA[*/
+	 xsd=/*[[${validationXsd}]]*/
+	 configs=/*[[${configs}]]*/
+	 payments=/*[[${payments}]]*/
+	 sample=/*[[${sample}]]*/
+	 $$dropDowns=JSON.parse(/*[[${dropDowns}]]*/);
+	$$project =/*[[${project}]]*/	
+/*]]>*/
+</script>
+<body >
+	<header th:replace="fragments/fragments::header"></header>
+
+	<div class="content">
+		<div style="float: left; width: 20%;" name="leftl">
+			<div style="margin-bottom: 5px;">
+			<th:block th:unless="${project == 'adpharma'}">
+				<select id="payments" name="payments" class="form-control">
+					<option value="0"></option>
+					<option value="1">SIMPLE</option>
+					<option value="2">SIMPLE TEMPLATE</option>
+					<option value="3">MULTIPLE TEMPLATE</option>
+				</select>
+				</th:block>
+				<th:block th:if="${project == 'adpharma'}">
+				<select id="payments" name="payments" class="form-control">
+					<option value="0"></option>
+					<option value="1">SIMPLE</option>
+				</select>
+				</th:block>
+			</div>
+			<div style="display:block;margin-bottom: 5px;" id="div_sample">
+				
+			</div>
+			<div style="display:none;margin-bottom: 5px;" id="div_template">
+				<select id="templates" class="form-control">
+					<option></option>
+				
+				</select>
+			</div>
+			<div style="margin-bottom: 5px;">
+				<input id="no" type="number" min="1" max="10" value="1" class="form-control">
+			</div>
+		</div>
+		<div class="table-wrapper" style="float: left;width:30%;" id="center">
+			<div class="container" id="container" style="padding-bottom: 60px;">
+				<ul class="nav nav-pills" id="ulTab">
+				    
+			  	</ul>
+			  	<div class="tab-content" id="tabContent">
+				    
+				</div>
+			  	<button id="createPayment">Create payment</button>
+			</div>
+		</div>
+
+		<div style="position: fixed;right: 30%;height: 75%;overflow:auto;display:none" name="right";>
+			<label>Show element
+			<input type="checkbox" id="elementShowHide">
+			</label>
+		</div>
+	</div>
+		<br>
+		<br>
+		<br>
+	<footer th:replace="fragments/fragments::footer"></footer>
+</body>
+</html>

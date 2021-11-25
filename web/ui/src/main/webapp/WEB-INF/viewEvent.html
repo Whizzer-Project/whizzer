@@ -1,0 +1,111 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+
+<style>
+div.left {
+	float: left;
+	display: inline-block;
+	width: 15%;
+}
+div.right {
+	display: inline-block;
+	width: 85%;
+}
+.block {
+	display: flex;
+}
+</style>
+</head>
+<body class="modal">
+			<script type="text/javascript" th:inline="javascript">
+				//<![CDATA[
+					
+				$(function(){
+					var table = $('<table >').addClass("fintpTable display").css("width", "100%");
+					$('#related').append(table);
+					
+					table.datatablesInit({
+						sortColumn: [ 0, "desc" ],
+						actions: {
+							get: '../page-related?correlationid=' + $('#correlationid').text(), 
+						},
+						columns: [ 
+							{ "title": [[#{events.eventdate}]], "data": "eventdate",
+								"width" : "150px",
+							  "render": function(data, type, row, meta){
+									return moment(data).format('YYYY-MM-DD HH:mm:ss')
+								}
+							},
+							{ "title": [[#{events.service}]], "data": "service"},
+							{ "title": [[#{events.type}]], "data": "type"},
+							{ "title": [[#{events.message}]], "data": "message" },
+							{ "title": [[#{users.username}]], "data": "username" },
+							
+							
+						]
+					});
+				});
+				
+				//]]>
+			</script>
+	<div style="display:block;">
+		<div class="block">
+			<div class="left" th:text="#{events.correlationid}" >:
+			</div>
+			<div class="right" th:text="${#strings.trim(event.correlationid)}" id = "correlationid">
+			</div>
+		</div>
+		<div class="block">
+			<div class="left" th:text="#{events.message}">:
+			</div>
+			<div class="right" th:text="${event.message}">
+			</div>
+		</div>
+		<div  class="block">
+			<div class="left" th:text="#{events.additionalinfo}">:
+			</div>
+			<div class="right" th:text="${event.additionalinfo}">
+			</div>
+		</div>
+		<div class="block">
+			<div class="left" th:text="#{events.innerexception}" >:</div>
+			<div class="right">
+				<div  th:text="${event.innerexception}">
+				</div>
+				<div th:if="${event.innerexception == null}" th:text="#{events.noInnerException}">
+				</div> 
+				
+			</div>
+		</div>
+		<div><span style="font-weight:bold">Transaction related events</span></div>
+		<div id="related">
+			
+			
+		</div>
+	</div>
+</body>
+</html>

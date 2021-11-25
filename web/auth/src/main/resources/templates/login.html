@@ -1,0 +1,67 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:replace="fragments/fragments::libs"></th:block>
+<script>
+	function hideShowPasswd(e) {
+		var p = e.previousSibling;
+		if (p.getAttribute('type') == 'password') {
+			p.setAttribute('type', 'text');
+		} else {
+			p.setAttribute('type', 'password');
+		}
+	}
+</script>
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+
+<body >
+
+	<div th:replace="fragments/fragments::header"></div>
+
+	<div class="content">
+		<center>
+			<form name="loginForm" th:action="@{/login}" method="post"
+				id="loginForm">
+				<span style="color: red" th:text="${error}"></span>
+				<span style="color: red" th:text="${msg}"></span>  
+				<label style="text-align: left; float: left;">Username</label> 
+				<input name="username" type="text" placeholder="" style="border-radius: 3px;" /> 
+					
+				<label style="text-align: left; float: left;">Password</label>
+				<span style="float:right; display:none"><a href="#">Forgot password?</a></span>
+				<input name="password" type="password" placeholder="" 
+					style="border-radius: 3px; width: 220px; height: 25px;" /><span
+					style="margin-left: -24px; width: 20px;cursor : pointer;"
+					class="glyphicon glyphicon-eye-open" onclick="hideShowPasswd(this)">
+				</span>
+				
+				<input name="submit" type="submit" value="Login" class = "submitButton"
+					style="border-radius: 3px;margin-left:0px" />
+			</form>
+		</center>
+	</div>
+	<div th:replace="fragments/fragments::footer"></div>
+</body>
+</html>

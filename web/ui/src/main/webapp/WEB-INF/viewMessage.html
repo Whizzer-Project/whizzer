@@ -1,0 +1,202 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<script th:src="@{/scripts/jstree.min.js}"></script>
+<script th:src="@{/scripts/utils/utils.js}"></script>
+<script th:src="@{/scripts/viewMessage.js}"></script>
+<link th:href="@{/style/app.css}" rel="stylesheet" type="text/css" />
+<link th:href="@{/style/content.css}" rel="stylesheet" type="text/css" />
+<link th:href="@{/style/fintpTable.css}" rel="stylesheet" />
+<link th:href="@{/style/jstree/style.min.css}" rel="stylesheet" />
+
+<style>
+.modal-header {
+	background-color: #442080;
+}
+.modal-lg{
+	width: 150vh
+}
+</style>
+
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body class="">
+
+	<th:block th:switch="${#lists.isEmpty(message)}">
+		<th:block th:case="true">
+	        No message with the specified id was found.
+		</th:block>
+		<th:block th:case="false">
+
+			<table style="table-layout: fixed; width: 100%;">
+				<tr>
+					<td width="65%"><th:block th:if="${payload != null}">
+							<button th:if="${action=='view'}" id="expand"
+								class="messageAction submitButton glossy-button glossy-button--purple addButton"
+								style="font-weight: bold; cursor: pointer;">Expand all</button>
+							<button th:if="${action=='view'}" id="collapse"
+								class="messageAction submitButton glossy-button glossy-button--purple addButton"
+								style="font-weight: bold; cursor: pointer;">Collapse all</button>
+							<div id="xmlTree"
+								th:include="fragments/fragments::xmlView(parent=${payload.getDocumentElement()})"></div>
+						</th:block>
+						<div th:if="${payloadString != null}" th:utext="${payloadString}"></div>
+						<script th:inline="javascript">
+							/*<![CDATA[*/
+							var dropDowns = JSON.parse(/*[[${dropDowns}]]*/);
+							var $$field_compare
+							var templateOptions = /*[[${templateOptions}]]*/ '';
+							var project = /*[[${project}]]*/; 
+							var id = /*[[${id}]]*/ '';
+							var action = /*[[${action}]]*/ '';
+							var eventLabels = {
+								 correlationid : /*[[#{events.correlationid}]]*/,
+								 additionalinfo : /*[[#{events.additionalinfo}]]*/,
+								 message : /*[[#{events.message}]]*/,
+								 dateTime : /*[[#{events.dateTime}]]*/,
+								 user : /*[[#{events.user}]]*/
+							}
+							var historyLabels = {
+									dateTime : /*[[#{history.insertDate}]]*/,
+									requestorService : /*[[#{history.requestorService}]]*/,
+									corrId : /*[[#{history.correlationId}]]*/,
+							}
+							var queueLabels = {
+									reference : /*[[#{queue.reference}]]*/,
+									 status : /*[[#{queue.status}]]*/,
+									 name : /*[[#{queue.source.file.name}]]*/,
+									 current: /*[[#{queue.queueName}]]*/
+							}
+							var messageType = /*[[${messageType}]]*/ ''; 
+							var message = /*[[${message}]]*/ '';
+							var entryQueueMessage = /*[[${entryQueueMessage}]]*/; 
+							
+							
+							
+							
+							
+							/*]]>*/
+						</script>
+						
+						<div th:switch="${action}">
+							<div th:case="edit"> * <span th:text="#{reports.editMessage}">Valoare inexistenta in nomenclatoare</span></div>
+							<div th:case="*"></div>
+						</div>
+						<div id="div_history" style="display:none">
+						
+						</div>
+						
+						
+					</td>
+					<td>
+						<table class="fintpTable" style="width:100%">
+							<tbody>
+								<tr>
+									<td><b><th:block th:text="#{reports.headerState}" /></b></td>
+									<td><th:block th:with='value = ${message.get("status")}'>
+											<th:block th:if="${value != null}"
+												th:text="${value.asText()}" />
+										</th:block></td>
+								</tr>
+								<tr>
+									<td><b><th:block th:text="#{reports.headerSrcApp}" /></b></td>
+									<td><th:block
+											th:with='value = ${message.get("requestorservice")}'>
+											<th:block th:if="${value != null}"
+												th:text="${value.asText()}" />
+										</th:block></td>
+								</tr>
+								<tr>
+									<td><b><th:block
+												th:text="#{reports.headerCurrentQueue}" /></b></td>
+									<td><th:block
+											th:with='value = ${message.get("queuename")}'>
+											<th:block th:if="${value != null}"
+												th:text="${value.asText()}" />
+										</th:block></td>
+								</tr>
+								<tr>
+									<td><b><th:block
+												th:text="#{reports.headerSourceBatchid}" /></b></td>
+									<td><th:block
+											th:with='value = ${message.get("sourcefilename")}'>
+											<th:block th:if="${value != null}"
+												th:text="${value.asText()}" />
+										</th:block></td>
+								</tr>
+								<tr>
+									<td><b><th:block
+												th:text="#{reports.headerDestinationBatchid}" /></b></td>
+									<td><th:block
+											th:with='value = ${message.get("destinationfilename")}'>
+											<th:block th:if="${value != null}"
+												th:text="${value.asText()}" />
+										</th:block></td>
+								</tr>
+							</tbody>
+						</table> <br>
+
+
+					</td>
+				</tr>
+			</table>
+<!--  			<th:block th:if="${entryQueueMessage}"> -->
+				<div style='overflow-y: auto;'>
+					<ul class="nav nav-tabs">
+						<th:block th:if="${outstanding}">
+							<li class="active"><a data-toggle="tab" href="#menu3">Correlated events</a></li>
+						</th:block>
+						<th:block th:unless="${outstanding}">
+							<li class="active"><a data-toggle="tab" href="#menu1">Original transaction</a></li>
+							<li><a data-toggle="tab" href="#menu2" id="duplicate">Duplicate</a></li>
+							<li><a data-toggle="tab" href="#menu3">Correlated events</a></li>
+						</th:block>
+						
+					</ul>
+					<div class="tab-content">
+						<th:block th:if="${outstanding}">
+							<div id="menu3" class="tab-pane active">
+								<span style="text-align:left">No data</span>
+							</div>
+						</th:block>
+						<th:block th:unless="${outstanding}">
+							<div id="menu1" class="tab-pane active">
+								<span style="text-align:left">No data</span>
+							</div>
+							<div id="menu2" class="tab-pane fade">
+								<span style="text-align:left">No data</span>
+							</div>
+							<div id="menu3" class="tab-pane fade">
+								<span style="text-align:left">No data</span>
+							</div>
+						</th:block>
+					</div>
+				</div>
+<!-- 			</th:block> -->
+		</th:block>
+	</th:block>
+
+</body>
+</html>

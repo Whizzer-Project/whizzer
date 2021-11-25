@@ -1,0 +1,38 @@
+@charset "ISO-8859-1";
+[hidden] {
+	display: none;
+}
+
+section {
+	margin: 5px;
+}
+
+label {
+	display: block;
+}
+
+label>span {
+	float: left;
+	margin-right: 5px;
+	min-width: 200px;
+}
+
+button[type='submit']:before {
+	content: "OK";
+}
+
+button.add:before {
+	content: "+ ";
+}
+
+button.remove:before {
+	content: "-";
+}
+
+input[data-xsd2html2xml-duration='days']+span:after {
+	content: " (days)";
+}
+
+input[data-xsd2html2xml-duration='minutes']+span:after {
+	content: " (minutes)";
+}

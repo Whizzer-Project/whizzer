@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+
+	<script type="text/javascript" th:inline="javascript">
+	/*<![CDATA[*/
+		isDelete = /*[[${editRulesAddButton}]]*/
+		title = /*[[#{global.viewCondition}]]*/
+		titleName  = /*[[#{editRules.table.col.name}]]*/
+		txFiled = /*[[#{global.txfield}]]*/
+		titleBussList = /*[[#{global.busslist}]]*/
+		titleFieldList = /*[[#{global.busslistfield}]]*/
+		titleMandatory = /*[[#{global.mandatory}]]*/
+		globalUser = /*[[#{global.userid}]]*/
+		globalConfig = /*[[#{global.configid}]]*/
+		
+		button = {
+			delete : 	{
+				url: "edit-rules/{rowid}/delete",
+				confirm: $$messages["editRules.confirm.delete"] ,
+				callBack: function(url){getPageByUrl(url, "#edit_rules")},
+			}, 
+			edit : {
+				url: "edit-rules/{rowid}/edit",
+				callBack: function(url){getPageByUrl(url, "#edit_rules")},
+			}
+		}
+		if ([isDelete].includes(false)){
+			button = {
+					delete : {},
+					edit : {},
+			}
+		}
+		
+		$(function(){
+			var table = $('<table>').addClass("fintpTable display").css('width', '100%');
+			$('#tableWrapperEditRules').append(table);
+			if ($('#template').val() !== undefined){
+				table.datatablesInit({
+					actions: {
+						get: 'edit-rules/page?templateId=' + $('#template').val(),
+						edit: button.edit,
+						view: {
+		                    url: 'edit-rules/{rowid}/view',
+		                    dialog:{
+		                    	title : title,
+		                    },
+		                    viewBtn : function viewBtn(row){
+		                        return !jQuery.isEmptyObject(row.conditions);
+		                    }
+		                },
+						delete: button.delete,
+					},
+					sortColumn: 0,
+					columns: [ 						
+						{ "title": titleName, "data": "name" },
+						{ "title": txFiled, "data": "txField",
+							"render":function ( data, type, row, meta ) {
+								return (data!==null?data.split('/').join('/ '):"");
+							},
+						},
+						{ "title": titleBussList, "data": "bussList" },
+						{ "title": titleFieldList, "data": "bussListField" },
+						{ "title": titleMandatory, "data": "mandatory", 
+							"name":  {"filterType": "boolean"}, 
+							"className" : 'dt-body-center',
+							"headerExtra": {
+								"data-filter": "checkbox",
+								"data-datasource": '["true","false"]'
+							},
+							"render":function ( data, type, row, meta ) {
+								return (data===true?'<span class="glyphicon glyphicon-ok" style="color:green"/>':"");
+								},
+						},
+						{ "title": globalUser, "visible":false, "data": "userId" },
+						{ "title": globalConfig, "visible":false, "data": "configId" },
+						{ "data": "conditions", "visible":false},
+						{ "data": "txType", "visible":false }
+					]
+				});		
+			}						
+
+			$("#addEditRule").click(function(){
+				getPageByUrl("edit-rules/add?templateId=" + $('#template').val(), "#edit_rules")
+			})			
+		})		
+	
+// 		function getPageByUrl(url, id_element){
+// 			$.ajax({
+// 				method: 'get',
+// 				url: url,
+// 				beforeSend: function(){
+// 					$('#loader').show()
+// 				},
+// 				success: function(data){
+// 					$(id_element).empty()
+// 					$(id_element).append(data);
+// 				},
+// 			})
+// 		}			
+		
+	/*]]>*/
+</script>
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body>
+
+		<input id="apiUri" type="hidden" value="${apiUri}" /> 
+		
+		<div id="tableWrapperEditRules" style="width:100%">
+			<th:block th:if="${editRulesAddButton==true}">
+				<button id="addEditRule" class="submitButton glossy-button glossy-button--purple addButton" style="width: auto;" th:text="#{editRules.addRule}"></button>
+			</th:block>
+		</div>	
+		<br>
+		<br>
+		<br>	
+</body>
+</html>

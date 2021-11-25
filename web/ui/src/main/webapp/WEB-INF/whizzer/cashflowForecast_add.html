@@ -1,0 +1,146 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+<script th:src="@{/scripts/whizzer/cashflowForecast.js}"></script>
+<link th:href="@{/style/beautifulDialog.css}" rel="stylesheet" type="text/css" />
+</head>
+
+<body class="modal-body">
+	<form method="post" th:action="${formAction}" style="margin: 2% 18%;" th:object="${cashflowForecast}"> 
+		<div id="addEditForm">
+			<input type="hidden" th:field="*{id}"/>
+			<input type="hidden" th:field="*{userid}"/>
+			<input type="hidden" id="entityName" name="entity"/> 
+			<div class="form-group row">
+			  <label for="opType" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.opType}"/>:</label>
+			  <div class="col-md-6">
+			    <select name="opType" id="opType" th:field="*{operationtype}" class="form-control"
+					style="text-align: left;" th:required="required">
+						<option value="Incasare (Collection)">Incasare (Collection)</option>
+						<option value="Plata (Payment)">Plata (Payment)</option>
+						<option value="Sold initial (Initial Account Balance)">Sold initial (Initial Account Balance)</option>
+				</select>
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="opSubType" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.opSubType}"/>:</label>
+			  <div class="col-md-6">
+			   	<select name="opSubType" id="opSubType" th:field="*{opretionsubtype}" class="form-control"
+					style="text-align: left;" th:required="required">
+						<option value="cu document de plata (with payment document)">cu document de plata (with payment document)</option>
+						<option value="fara document de plata (without payment document)">fara document de plata (without payment document)</option>
+				</select>
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="typeRevenueExpense" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.typeRevenueExpense}"/>:</label>
+			  <div class="col-md-6">
+			   	<select name="typeRevenueExpense" id="typeRevenueExpense" th:field="*{revenueexpensetype}" class="form-control"
+					style="text-align: left;" >
+				</select>
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="typeInformation" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.typeInformation}"/>:</label>
+			  <div class="col-md-6">
+			   	<select name="typeInformation" id="typeInformation" th:field="*{informationtype}" class="form-control"
+					style="text-align: left;" th:required="required">
+					<option value="informatii estimative (estimated information)">informatii estimative  (estimated information)</option>
+				</select>
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="payerSupplierName" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.payerSupplierName}"/>:</label>
+			  <div class="col-md-6">
+			  	 <input id="payerSupplierName" type="text" th:field="*{payersuppliername}" class="form-control"
+						maxlength="35"  />
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="amount" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.amount}"/>:</label>
+			  <div class="col-md-6">
+			  	 <input id="amount" type="text" th:field="*{operationamount}" class="form-control"
+						maxlength="35" />
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="currency" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.currency}"/>:</label>
+			  <div class="col-md-6">
+			  	 <input id="currency" type="text" name="operationcurrency" readonly class="form-control"
+						maxlength="35" th:required="required" value="RON" />
+			  </div>
+			</div>
+
+			<div class="form-group row">
+			  <label for="issueDate" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.issueDate}"/>:</label>
+			  <div class="col-md-6">
+			  	 <input id="issueDate" type="text" th:field="*{issuedate}" class="form-control"
+						maxlength="35" th:required="required" />
+			  </div>
+			</div>
+						
+			<div class="form-group row">
+			  <label for="paymentDueDate" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.paymentDueDate}"/>:</label>
+			  <div class="col-md-6">
+			  	 <input id="paymentDueDate" type="number" th:field="*{paymentduedate}" class="form-control"
+						maxlength="35" th:required="required" />
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="maturityDate" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.maturityDate}"/>:</label>
+			  <div class="col-md-6">
+  				 <input id="maturityDate" type="text" th:field="*{maturitydate}" readonly class="form-control"
+						maxlength="35" th:required="required" />
+			  </div>
+			</div>
+			
+			<div class="form-group row">
+			  <label for="IBAN" class="col-md-6 col-form-label"><th:block th:utext="#{cashflowForecast.IBAN}"/>:</label>
+			  <div class="col-md-6">
+  				 <select class="form-control" name="IBAN" id="IBAN" th:field="*{operationiban}" style="text-align: left;" th:required="required">	
+					<option th:each="internalAccEntity : ${internalAccFilteredByName}"
+						th:value="${internalAccEntity.accountNumber}" th:text="${internalAccEntity.accountNumber}"  th:selected="${internalAccEntity.accountNumber==entityIban}" />
+				</select>
+			  </div>
+			</div>
+			
+		</div>
+	</form>
+
+	<script>
+		//<![CDATA[
+			$("#addEditForm").find("#entityName").val($("#entity").val());		
+		//]]>	
+	</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+
+<link th:href="@{/style/jquery/query-builder.default.min.css}" rel="stylesheet" type="text/css" />
+<script th:src="@{/libs/jquery/jquery-extendext.js}"></script>
+<script th:src="@{/libs/jquery/doT.js}" type="text/javascript"></script>
+<script th:src="@{/libs/jquery/query-builder.min.js}"></script>
+<script th:src="@{/libs/jquery-ui-1.12.1/jquery-ui.js}"></script>
+
+</head>
+<body>
+	<div style='margin: 0 auto; padding: 10px 10px; overflow-y: auto;'>
+		<span style="display:block;" th:text="#{global.viewCondition}"></span>
+		<div id="builder"></div>
+	</div>
+	
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		var listsMetaData = /*[[${listsMetaData}]]*/;
+		var conditions = /*[[${conditions}]]*/;
+		showLoader()
+		/*]]>*/		
+		
+		$(function(){
+			var myFilters = []
+			$.each(listsMetaData, function(listName, value){
+				$.each(value, function(key,field){
+					var filter = {id:listName+key, label:listName+"-"+field, field:listName+"-"+field,};
+					myFilters.push(filter);
+				});
+
+			})
+			if(myFilters.length!=0){						
+ 			    var rulesflags = {
+ 			    		"filter_readonly": true,
+ 			    		"operator_readonly": true,
+ 			    		"value_readonly": true,
+ 			    		"no_delete": true,
+				      };
+				      
+ 			    var groupflags = {
+ 			    		"condition_readonly": true,
+ 			    		"no_add_rule": true,
+ 			    		"no_add_group": true,
+ 			    		"no_delete": true,
+				      };
+	      	
+		      	function makeRulesReadOnly(item, index) {
+		      		item.flags = rulesflags;
+		      	} 
+		      			      			      			      	
+		      	function makeBuilderReadOnly(conditions) {
+		      		var rules = conditions.rules;
+					recurse(rules);
+					conditions.flags = groupflags;
+		      	}
+		      	
+		      	function recurse(rules) {
+					rules.forEach(function(entry) {
+						if(entry.condition !== undefined) {
+							entry.rules.forEach(makeRulesReadOnly);
+							entry.flags = groupflags;
+							recurse(entry.rules);
+						} else {
+							entry.flags = rulesflags;
+						}
+					});
+
+		      	}
+		      	
+		      	makeBuilderReadOnly(conditions);	
+		      	
+				var $builder = $('#builder').queryBuilder({
+									filters: myFilters,
+									operators: ['equal', 'not_equal', 'contains', 'not_contains',
+										{ type: '<', nb_inputs: 1, multiple: false, apply_to: ['string'] },
+										{ type: '>', nb_inputs: 1, multiple: false, apply_to: ['string'] }],
+									rules:(conditions),
+				});
+		      	
+				hideLoader();
+			}
+		})
+	</script>
+</body>
+</html>

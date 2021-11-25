@@ -1,0 +1,25 @@
+holon:
+  swagger:
+    version: 'v1'
+    pretty-print: true
+    api-groups:
+      - group-id: 'group1'
+        title: 'FinTP API'
+        resource-package: 'ro.allevo.fintpws'
+        path: '/api/docs'
+      - group-id: 'group2'
+        title: 'FinTP-UI API'
+        resource-package: 'ro.allevo.fintpuiws'
+        path: '/ui-api/docs'
+      - group-id: 'group3'
+        title: 'FinTP Tracker API'
+        resource-package: 'ro.allevo.tracker'
+        path: '/tracker-api/docs'
+      - group-id: 'group4'
+        title: 'FinTP Connect API'
+        resource-package: 'ro.allevo.connect'
+        path: '/connect-api/docs'
+      - group-id: 'group5'
+        title: 'FinTP AT API'
+        resource-package: 'ro.allevo.at'
+        path: '/automated-testing-api/docs'

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<link th:href="@{/style/jquery/query-builder.default.min.css}"
+	rel="stylesheet" type="text/css" />
+<script th:src="@{/libs/jquery/jquery-extendext.js}"></script>
+<script th:src="@{/libs/jquery/doT.js}" type="text/javascript"></script>
+<script th:src="@{/libs/jquery/query-builder.min.js}"></script>
+<script th:src="@{/libs/jquery-ui-1.12.1/jquery-ui.js}"></script>
+<script th:src="@{/scripts/queryBuilder/myFilters.js}"></script>
+
+<script th:src="@{/scripts/editRules_add.js}" ></script>
+</head>
+<body>
+	<form  method="post" th:action="${formAction}" style="margin: 2% 2%;" th:object="${editRules}" name="editRulesForm" id="editRulesForm">
+	
+		<input id="editRulesId" type="hidden" th:field="*{id}"
+							maxlength="35" th:required="required" class="form-control"/>
+		<input id="patternEditRule" type="hidden" class="form-control" />
+		
+		<div id="addEditRules" >
+			<table class="centeredTable" style="width: 100%;">
+				<tbody>
+					<tr>
+						<td><th:block th:text="#{editRules.name}" />:</td>
+						<td><input id="editRulesName" type="text"
+							maxlength="50" th:required="required" class="form-control"/></td>
+					</tr>
+					<tr>
+						<td style="vertical-align: top;"><th:block th:text="#{global.txfield}" />:</td>
+						<td>
+							<span id="editTxFieldTip" data-toggle="tooltip" data-placement="top" title="">
+								<input id="txListFieldEditRule" class="form-control" style="cursor:copy;" readonly></input>
+							</span>
+						</td>
+						<td></td>
+					</tr>
+					<tr>
+						<td><th:block th:text="#{editRules.mandatory}" />:</td>
+						<td><div style="display:inline-block"><input id="mandatoryEditRule" type="checkbox"/></div></td>
+					</tr>
+					<tr>
+						<td><th:block th:text="#{global.busslist}" />:</td>
+						<td><div id="bussListDivEditRule"></div></td>
+					</tr>
+					<tr>
+						<td style="vertical-align: top;"><th:block th:text="#{global.busslistfield}" />:</td>
+						<td><div id="bussListFieldDivEditRule"><select class="form-control"></select></div></td>
+					</tr>			
+				</tbody>
+			</table>
+			<div style='margin: 0 auto; padding: 10px 10px; overflow-y: auto;'>
+				<div th:text="#{editRules.conditions}"></div>
+				<div id="builderEditRules"></div>
+			</div>
+			
+		</div>
+	</form>
+	<button th:if="${editRulesUpdButton}" id="SaveEditRecord" class="btn create submitButton glossy-button glossy-button--purple" style="width: auto;" th:text="#{global.create}"></button>
+	<button id="CancelEditRecord" class="btn cancel submitButton glossy-button glossy-button--purple" style="width: auto;" th:text="#{global.cancel}"></button>
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		var listsMetaData = /*[[${listsMetaData}]]*/;
+		var $$editRulesData = /*[[${editRules}]]*/;
+		var $$listEditRules = /*[[${listEditRules}]]*/;
+		var $$button = /*[[#{${button}}]]*/;		
+		/*]]>*/		
+	</script>
+	<br>
+	<br>
+	<br>
+</body>
+</html>

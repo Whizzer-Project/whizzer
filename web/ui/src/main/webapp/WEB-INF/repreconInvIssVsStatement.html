@@ -1,0 +1,166 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+
+<link th:href="@{/style/sidebar.css}" rel="stylesheet" />
+<script th:src="@{/scripts/sidebar.js}"></script>
+<script src="libs/bootstrap/bootstrap-datetimepicker.min.js"></script>
+
+<link href="libs/bootstrap/bootstrap.min.css" rel="stylesheet" />
+<link href="libs/bootstrap/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+
+<script src="scripts/datetime.js"></script>
+
+<style type="text/css">
+.border-right {border-right:3px solid #4B0082}
+td .border-right {border-right:3px solid #4B0082}
+
+</style>
+
+<script type="text/javascript" th:inline="javascript">
+	//<![CDATA[
+		
+	$(function(){
+		var table = $('<table >').addClass("fintpTable display").css("width", "100%");
+		$(".table > tbody  > tr > td:nth-child(7)").each(function() {$(this).css('border', '3px solid red')});
+
+		$('.table-wrapper').append(table);
+		
+		
+		table.datatablesInit({
+			drawCallback : function(settings) {
+				if($('.fintpTable thead tr').length < 3){
+				$('.fintpTable thead').prepend("<tr><td colspan='9' style='text-align: center; vertical-align: middle;  border: 3px solid #4B0082'>Statement</td><td colspan='10' style='text-align: center; vertical-align: middle;  border: 3px solid #4B0082'>Issued Invoices</td></tr>")
+				}
+				if($('.fintpTable thead tr').length < 1000){
+				$(".fintpTable > tbody  > tr > td:nth-child(9)").each(function() {$(this).css('border-right', '3px solid #4B0082')});
+				$(".fintpTable > tbody  > tr:nth-child(9)").each(function() {$(this).css('border-right', '3px solid #4B0082')});
+				}
+			},
+			actions: {
+				get: 'repreconInvIssVsStatement/page'
+			},
+			columns: [
+				{ "title": [[#{repreconInvVsStatement.matchType}]], 
+					"name": {"filterType": "dropdown"},
+					"data": "matchType",
+					"headerExtra": {
+					"data-filter": "dropdown",
+					"data-datasource": '["Match","Unmatch"]'
+					
+					} 
+				},
+				{ "title": [[#{repreconInvVsStatement.stmtReference}]], "data": "stmtReference" },
+				{ "title": [[#{repreconInvVsStatement.stmtName}]], "data": "stmtName",
+					"headerExtra": {
+						"data-filter": "dropdown",
+						"data-datasource": [[${internalEntities}]]
+						
+					} },
+				{ "title": [[#{repreconInvVsStatement.stmtAmount}]],
+					"data": "stmtAmount", 
+					"name": {"filterType": "number"},
+					"className" : 'dt-body-right', 
+					"defaultContent": "",
+					"render": $.fn.dataTable.render.number( ',', '.', 2 ),
+					"headerExtra": {
+						"data-filter": "number"
+					}
+				},
+				{ "title": [[#{repreconInvVsStatement.stmtCurrency}]], "data": "stmtCurrency",
+					"headerExtra": {
+						"data-filter": "dropdown",
+						"data-datasource": [[${internalAccounts}]]
+						
+					} },
+				{ "title": [[#{repreconInvVsStatement.stmtValuedate}]], "data": "stmtValuedate",
+						"name": {"filterName": "timeInterval"},
+						"defaultContent": "",
+						"headerExtra" : {
+							"data-filter": "edatetime"
+						}	
+				},
+				{ "title": [[#{repreconInvVsStatement.stmtAccountnumber}]], "data": "stmtAccountnumber" },
+				{ "title": [[#{repreconInvVsStatement.stmtRemittanceinfo}]], "data": "stmtRemittanceinfo"
+					},
+				{ "title": [[#{repreconInvVsStatement.stmtstatementNumber}]], "data": "stmtstatementNumber",
+						"headerExtra": {
+							"data-filter": "dropdown",
+							"data-datasource": [[${stmtNumber}]]	
+						}	
+					},
+				{ "title": [[#{repreconInvVsStatement.invReference}]], "data": "invReference" },
+				{ "title": [[#{repreconInvVsStatement.invDbtcustomername}]], "data": "invDbtcustomername" },
+				{ "title": [[#{repreconInvVsStatement.invAmount}]],
+					"data": "invAmount", 
+					"name": {"filterType": "number"},
+					"className" : 'dt-body-right', 
+					"defaultContent": "",
+					"render": $.fn.dataTable.render.number( ',', '.', 2 ),
+					"headerExtra": {
+						"data-filter": "number"
+					}
+				},
+				{ "title": [[#{repreconInvVsStatement.invCurrency}]], "data": "invCurrency" },
+				{ "title": [[#{repreconInvVsStatement.invMaturitydate}]], "data": "invMaturitydate",
+					"name": {"filterName": "timeInterval"},
+					"defaultContent": "",
+					"headerExtra" : {
+						"data-filter": "edatetime"
+					}
+					},
+				{ "title": [[#{repreconInvVsStatement.invCdtaccount}]], "data": "invCdtaccount" },
+				{ "title": [[#{repreconInvVsStatement.invCdtcustomername}]], "data": "invCdtcustomername" },
+				{ "title": [[#{repreconInvVsStatement.invInvoiceno}]], "data": "invInvoiceno" },
+				{ "title": [[#{repreconInvVsStatement.invInvoiceserial}]], "data": "invInvoiceserial" },
+				
+			]
+		});
+		
+		
+	});
+	
+	//]]>
+</script>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+	<body>
+		<header th:replace="fragments/fragments::header"></header>
+
+		<div class="content">
+		<!-- <h2>
+			<th:block th:text="${param.businessArea[0]}" />
+		</h2> -->
+			<input id="apiUri" type="hidden" value="${apiUri}" /> 
+			
+		<div class="table-wrapper">
+			 	
+		</div>
+		
+		<footer th:replace="fragments/fragments::footer" id="footer"></footer>	
+	</body>
+</html>

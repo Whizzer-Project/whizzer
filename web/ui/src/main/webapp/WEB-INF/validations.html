@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+	<script type="text/javascript" th:inline="javascript">
+	/*<![CDATA[*/
+		
+		validationAddButton = /*[[${validationsAddButton}]]*/
+		condition = /*[[#{validationRules.condition}]]*/
+		name = /*[[#{validationRules.name}]]*/
+		txField = /*[[#{validationRules.txfield}]]*/
+		type = /*[[#{validationRules.type}]]*/
+		
+		$(function(){
+			
+			$validaiton = {}
+			$validaiton.button = {
+					add : validationAddButton,
+			}
+			$validaiton.delete = undefined
+			$validaiton.edit = undefined
+			
+			
+			if ([$$addModifyButton].includes(true)){
+				$validaiton ={
+						delete : {
+							url : "validations/{rowid}/delete",
+							confirm : $$messages["enrichRules.confirm.delete"],
+							callBack : function(url){getPageByUrl(url, '#validation_rules')}
+						},
+						edit : {
+							url: "validations/{id}/edit",
+							callBack: function(url){getPageByUrl(url,'#validation_rules')},
+						},
+				}
+			}
+			
+			
+			algorithmType = {
+					"CIF syntax" : "CIF syntax",
+// 					"CNP syntax" : "CNP syntax",
+					"IBAN syntax" : "IBAN syntax",
+			}
+			if ($$project.toLowerCase().trim()!='adpharma'){
+				algorithmType["roIban"] = "RO IBAN Bank matching"
+			}
+			algorithmType["null"] = "User defined"
+			
+			var table = $('<table>').addClass("fintpTable display").css('width', '100%');
+			$('#tableWrapperValidations').append(table);
+			if ($('#template').val() !== undefined){
+				table.datatablesInit({
+					actions: {
+						get: 'validations/page?templateId=' + $('#template').val(),
+						edit: $validaiton.edit,
+						view: {
+		                    url: 'validations/{id}/view',
+		                    dialog:{
+		                    	title : condition,
+		                    },
+		                    viewBtn : function viewBtn(row){
+		                        return !jQuery.isEmptyObject(row.conditions) && row.algorithm != "roIban";
+		                    }
+		                },
+						delete: $validaiton.delete,
+					},
+					sortColumn: 0,
+					columns: [ 						
+						{ "title": name, "data": "name" },
+						{ "title": txField, "data": "txField",
+							"render":function ( data, type, row, meta ) {
+								return (data!==null?data.split('/').join('/ '):"");
+							},
+						},
+						{ "title": type, "data": "algorithm", "name" :{"filterType": "dropdown"},
+							"headerExtra": {
+								"data-filter": "dropdown",
+								"data-datasource": JSON.stringify(algorithmType)
+							},
+							"render":function ( data, type, row, meta ) {
+								return (data == null? "User defined" : data);
+							},	
+						},
+						{ "data": "conditions", "visible":false},
+						{ "data": "txType", "visible":false }
+					]
+				});		
+			}									
+			
+			$("#addValidation").click(function(){
+				getPageByUrl("validations/add?txtype="+$('#template option:selected').val(),'#validation_rules')
+			})			
+		})		
+		
+	/*]]>*/
+</script>
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}"/></title>
+</head>
+<body>
+
+		<input id="apiUri" type="hidden" value="${apiUri}" /> 
+		
+		<div id="tableWrapperValidations" class="table-wrapper" style="width:100%">
+		<th:block th:if="${validationsAddButton==true}">
+			<button id="addValidation" class="submitButton glossy-button glossy-button--purple addButton" style="width: auto;" th:text="#{validationRules.addRule}"></button>
+		</th:block>
+				
+		</div>	
+		<br>
+		<br>
+		<br>	
+</body>
+</html>

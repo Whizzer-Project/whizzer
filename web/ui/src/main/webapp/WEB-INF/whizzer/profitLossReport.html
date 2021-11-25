@@ -1,0 +1,349 @@
+<!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<th:block th:replace="fragments/fragments::libs"></th:block>
+<script th:src="@{/scripts/chart/numeric.min.js}"></script>
+<!-- <script th:src="@{/scripts/chart/plotly-latest.min.js}"></script> -->
+<script src="https://cdn.plot.ly/plotly-1.48.3.min.js"></script>
+<script th:src="@{/libs/jspdf/jspdf.min.js}" type="text/javascript"></script>
+<script th:src="@{/libs/xlsx.full.min.js}" type="text/javascript"></script>
+<script th:src="@{/scripts/utils/utils.js}"></script>
+<script th:src="@{/scripts/whizzer/profitLossReport.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+//<![CDATA[
+const profitLossReport = [[${profitLossReport}]];
+const labels = [[${labels}]];
+const year = [[${year}]];
+ //]]>
+</script>
+<style>
+table, th, td {
+  border: 1px solid black;
+}
+</style>
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+	<body>
+		<header th:replace="fragments/fragments::header"></header>
+		<div class="row" style="margin-bottom: 20px;margin-left: 20px;">
+			<button id="ToPDF" class="btn btn-sm bypass-export"><span class="glyphicon glyphicon-save"></span>Export PDF</button>
+		</div>
+				  <!-- Modal -->
+		  <div class="modal fade" id="myModal" role="dialog">
+		    <div class="modal-dialog">
+		      <div class="modal-content">
+		        <div class="modal-header">
+		          <button type="button" class="close" data-dismiss="modal">&times;</button>
+		          <h4 class="modal-title">KPIs</h4>
+		        </div>
+		        <div class="modal-body">
+		  			<th:div th:if="${pkis!=null}" >
+						<table>
+							<thead>
+								<tr>
+									<th style="background:#CCFFCC;text-align:center">KPI</th>
+									<th style="background:#CCFFCC;text-align:center" th:text="${year}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td th:text="${labels.get('emplcostsinturnover')}" ></td>
+									<td id="debitratio" style="text-align:right" >
+										<span th:text="${#numbers.formatDecimal(pkis.emplcostsinturnover, 1, 'COMMA', 2, 'POINT')}"></span><span th:text="${pkis.emplcostsinturnover}?'%':''"></span>
+									</td>
+								</tr>
+								<tr>
+									<td th:text="${labels.get('assetrurnoverratio')}" ></td>
+									<td id="currentratio" style="text-align:right" th:text="${#numbers.formatDecimal(pkis.assetrurnoverratio, 1, 'COMMA', 2, 'POINT')}"></td>
+								</tr>
+								<tr>
+									<td th:text="${labels.get('roe')}" ></td>
+									<td id="roe" style="text-align:right" >
+										<span th:text="${#numbers.formatDecimal(pkis.roe, 1, 'COMMA', 2, 'POINT')}"></span><span th:text="${pkis.roe}?'%':''"></span>
+									</td>
+								</tr>
+								<tr>
+									<td th:text="${labels.get('profitrate')}" ></td>
+									<td id="profitrate" style="text-align:right" >
+									<span th:text="${#numbers.formatDecimal(pkis.profitrate, 1, 'COMMA', 2, 'POINT')}"></span><span th:text="${pkis.profitrate}?'%':''"></span></td>
+								</tr>
+							</tbody>
+						</table>
+					</th:div>
+		        </div>
+		        <div class="modal-footer">
+		          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		        </div>
+		      </div>
+		      
+		    </div>
+		</div>
+		
+		<form th:action="${'profitLossReport'}" id="profitLossReportForm">
+			<div class="row">
+					<div class="col-md-12 excludePdf">
+						<label for="entity" th:text="#{whizzer.entity}"></label>
+						<select class="form-control excludePdf" name="entity"  id="entity" style="width:150px;display:inline-block">
+							<option></option>
+							<option th:each="entityName : ${internalEntities}"
+								th:value="${entityName}" th:utext="${entityName}" th:selected="(${entity == entityName})" />
+						</select>
+						
+						<label for="year" th:text="#{whizzer.year}"></label>
+						<select id="year" name="year" class="form-control excludePdf" style="width:90px"></select>
+						
+						<button class='submitButton' style="margin: 0px 10px 0px;" th:text="#{global.ok}"></button>
+						<button type="button" id="viewKpis" class="submitButton" data-toggle="modal" data-target="#myModal">View KPIs</button>
+	
+						<input type="hidden" name="fp" value="header.menuWhizzer" >
+						<input type="hidden" name="fp" value="header.menuWhizzerPL" >
+					</div>
+				</div>
+		</form>
+				
+		<div id="content">
+		  <div class="container-fluid">
+			<div class="row">
+			 <div class="col-xl-3 col-md-6 mb-4">
+		
+				<th:span style="visibility:hidden" id="entityPdf" th:text="${entity}"></th:span>
+				<span style="visibility:hidden" id="entityYear"></span>
+				<br>
+				<th:span th:if="${entity!=null && profitLossReport==null}" style="font-size:20px;">
+					No data.
+				</th:span>
+				
+				<th:block th:unless="${profitLossReport==null}">
+				<table class="centeredTable">
+					<thead>	
+						<tr>
+							<th style="background:#C0C0C0;text-align:center">Category (Categorie)</th>
+							<th style="background:#C0C0C0;text-align:center">Financial indicators (Indicatori economici)</th>
+							<th style="background:#C0C0C0;">YTD (Total anul curent)</th>
+						</tr>
+					</thead>
+					<tbody>
+					
+						<tr>
+							<td rowspan="18" style="vertical-align : middle;text-align:center;font-weight: bold;background:#FCE4D6"> OPERATING AREA<br> (ZONA DE EXPLOATARE)</td>
+							<td th:text="${labels.get('omfp3')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp3, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp2')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp2, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp1')}" style="font-weight: bold;"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp1, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp8')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp8, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp11')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp11, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp12')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp12, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp15')}" style="font-weight: bold;background:#CCFFCC;"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp15, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#CCFFCC;"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp16')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp16, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp17')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp17, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp18')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp18, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp19')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp19, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp21')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp21, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp24')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp24, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp30')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp30, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp40')}" style="font-weight: bold;background:#CCFFCC;"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp40, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#CCFFCC;"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;background:#FCE4D6">Operating Result (Rezultatul exploatarii)</td>
+							<td style="background:#FCE4D6"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;background:#FCE4D6">Profit (Profit)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp41, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#FCE4D6"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;background:#FCE4D6">Loss (Pierdere)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp42, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#FCE4D6"></td>
+						</tr>
+						<tr>
+							<td rowspan="9" style="vertical-align : middle;text-align:center;font-weight: bold;background:#FCE4D6">FINANCIAL AREA <br>(ZONA FINANCIARA)</td>
+							<td th:text="${labels.get('omfp45')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp45, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp48')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp48, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp50')}" style="font-weight: bold;background:#CCFFCC;"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp50, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#CCFFCC;" ></td>
+						</tr>
+						
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp54')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp54, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp56')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp56, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp57')}" style="font-weight: bold;background:#CCFFCC;"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp57, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#CCFFCC;"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;background:#FCE4D6">Financial Result (Rezultatul financiar)</td>
+							<td style="background:#FCE4D6"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;background:#FCE4D6">Profit (Profit)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp58, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#FCE4D6"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;background:#FCE4D6;">Loss (Pierdere)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp59, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;text-align:right;background:#FCE4D6;"></td>
+						</tr>
+						<tr>
+							<td rowspan="2" style="background:#FCE4D6;"></td>
+							<td th:text="${labels.get('omfp60')}" style="font-weight: bold;background:#BDD7EE"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp60, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#BDD7EE"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td th:text="${labels.get('omfp61')}" style="font-weight: bold;;background:#BDD7EE"></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp61, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right;background:#BDD7EE"></td>
+						</tr>
+						<tr>
+							<td rowspan="3" style="vertical-align : middle;text-align:center;font-weight: bold;background:#FCE4D6">GROSS RESULT <br>(REZULTATUL BRUT)</td>
+							<td style="font-weight: bold;">Gross Profit or Loss (Profitul sau pierderea brut(a))</td>
+							<td style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;">Profit (Profit)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp62, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;">Loss (Pierdere)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp63, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="background:#FCE4D6;"></td>
+							<td th:text="${labels.get('omfp64')}" ></td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp64, 1, 'COMMA', 2, 'POINT')}" style="text-align:right"></td>
+						</tr>
+						<tr>
+							<td rowspan="3" style="vertical-align : middle;text-align:center;font-weight: bold;background:#FCE4D6">NET RESULT <br>(REZUTATUL NET)</td>
+							<td style="font-weight: bold;">Net Profit or Loss (Profitul sau pierderea net(a))</td>
+							<td style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;">Profit (Profit)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp67, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right"></td>
+						</tr>
+						<tr>
+							<td style="display:none"></td>
+							<td style="font-weight: bold;text-align:right;">Loss (Pierdere)</td>
+							<td th:text="${#numbers.formatDecimal(profitLossReport.omfp68, 1, 'COMMA', 2, 'POINT')}" style="font-weight: bold;text-align:right"></td>
+						</tr>
+						
+					</tbody>
+				</table>
+				</th:block>
+			</div>
+			
+			<div id="piesGraphsPL">
+				<div id='revenuesDiv' class="col-xl-3 col-md-6 mb-4 excludePdf"><!-- Plotly chart will be drawn inside this DIV --></div>
+				<div id='costsDiv' class="col-xl-3 col-md-6 mb-4 excludePdf"><!-- Plotly chart will be drawn inside this DIV --></div>
+				<img style="visibility:hidden" id="revenues"/>
+				<br style="visibility:hidden">
+				<img style="visibility:hidden" id="costs"/>
+			</div>
+			</div>
+		 </div>
+		</div>
+		<footer th:replace="fragments/fragments::footer" id="footer"></footer>	
+	</body>
+</html>

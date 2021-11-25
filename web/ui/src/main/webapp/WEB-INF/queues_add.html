@@ -1,0 +1,224 @@
+ <!-- 
+* FinTP - Financial Transactions Processing Application
+* Copyright (C) 2013 Business Information Systems (Allevo) S.R.L.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>
+* or contact Allevo at : 031281 Bucuresti, 23C Calea Vitan, Romania,
+* phone +40212554577, office@allevo.ro <mailto:office@allevo.ro>, www.allevo.ro. -->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<meta charset="ISO-8859-1" />
+<title><th:block th:text="${title}" /></title>
+</head>
+<body class="modal">
+	<input id="apiUri" type="hidden" value="${apiUri}" />
+	<form method="post" th:action="${formAction}" style="margin: 2% 18%;"
+		th:object="${queue}">
+		<table style="width: 100%;">
+			<tbody>
+				<tr style="width: 100%">
+					<td style="width: 50%"><th:block th:text="#{queue.queueName}" />:</td>
+					<td style="width: 50%"><input id="name" type="text"
+						th:field="*{name}" class="form-control" th:required="required"
+						maxlength="50" /> <input type="hidden"
+						name="id" th:field="*{id}" /></td>
+				</tr>
+				<tr style="width: 100%">
+					<td style="width: 50%"><th:block th:text="#{queue.queueLabel}" />:</td>
+					<td style="width: 50%"><input id="label" type="text"
+						th:field="*{label}" class="form-control" th:required="required"
+						maxlength="50" /></td>
+				</tr>
+				<tr style="width: 100%">
+					<td style="vertical-align: top; width: 50%"><th:block
+							th:text="#{queue.description}" />:</td>
+					<td style="width: 50%"><textarea id="address" type="text"
+							class="form-control" th:field="*{description}" maxlength="100"></textarea></td>
+				</tr>
+				<tr style="width: 100%">
+					<td style="width: 50%"><th:block th:text="#{queue.holdStatus}" />:</td>
+					<td style="width: 50%"><select th:field="*{holdStatus}"
+						th:required="required" class="form-control">
+							<option value="" />
+							<option th:value="0" th:text="Inactive"></option>
+							<option th:value="1" th:text="Active"></option>
+					</select></td>
+				</tr>
+				<tr style="width: 100%">
+					<td style="width: 50%"><th:block th:text="#{queue.type}" />:</td>
+					<td style="width: 50%" id="queueType"><select
+						name="queueTypeId" class="form-control" th:field="*{queueTypeId}"
+						th:required="required">
+							<option th:each="t : ${types}" th:value="${t.getFirst()}"
+								th:text="${t.getSecond()}" />
+					</select></td>
+				</tr>
+				<tr style="width: 100%" id="rowQueueDestinations">
+					<td style="width: 50%"><th:block
+							th:text="#{queue.destination}" />:</td>
+					<td style="width: 50%"><select id="queueDestinations"
+						name="queueMoveMaps" class="form-control" multiple
+						th:field="*{queueMoveMaps}" th:required="required">
+							<option th:each="entry : ${queues.entrySet()}"
+								th:value="${entry.key}" th:text="${entry.value}"></option>
+					</select></td>
+				</tr>
+
+
+				<tr id="exitPoint">
+					<td style="width: 50%"><th:block th:text="#{queues.exitPoint}" />:</td>
+					<td style="width: 50%"><select th:field="*{exitPoint}"
+						class="form-control">
+							<option value="" />
+							<option th:each="c : ${connectors}" th:text="${c.value}"
+								th:value="${c.key}" />
+					</select></td>
+				</tr>
+				<tr id="maxTrxOnBatch" style="width: 100%">
+					<td style="width: 50%"><th:block
+							th:text="#{queue.maxTrxOnBatch}" />:</td>
+					<td style="width: 50%"><input type="number"
+						th:field="*{maxTrxOnBatch}" min="1" max="1500"
+						class="form-control" /></td>
+
+				</tr>
+				<tr style="width: 100%">
+					<td style="width: 50%"><th:block th:text="#{queues.priority}" />:</td>
+					<td style="width: 50%"><input type="number"
+						th:field="*{priority}" min="0" max="100" class="form-control" /></td>
+			</tbody>
+		</table>
+		<script>
+		$(function() {
+			
+			$$options = document.querySelectorAll("#queueDestinations option")
+			
+			$$span = document.querySelector(".multiselect-selected-text")
+			$$button = $$span.parentElement
+			$$li = document.querySelectorAll(".multiselect-container.dropdown-menu li")
+			$$li.forEach(node=>{node.addEventListener("click", changeTextSpan);node.click();node.click()})
+		})
+
+		function changeTextSpan(e){
+			e.preventDefault()
+			var input = this.querySelector("input")
+			input.checked = !(input.checked)
+			input.change
+			var inputValue = input.value
+			var optionSelected = Array.from($$options).filter(option => option.value == inputValue)[0]
+			optionSelected.toggleAttribute("selected")
+			this.classList.toggle("active")
+			var count = formattedSpan()
+			if (count > 0){
+				$$button.title = joinSelectedOption()
+				$$span.textContent = count + " selected"
+			}else{
+				$$span.textContent = "None selected"
+			}
+		}
+		
+		function joinSelectedOption(){
+			var text = ""
+			document.querySelectorAll('label.checkbox').forEach(
+					function(node) {
+						if (node.children[0].checked) {
+							if (text.length > 0){
+								text += ", "
+							}
+							text += node.textContent 
+						}
+					})
+			if (0 == text.length){
+				text = "None selected"
+			}
+			return text
+		}
+		
+		function formattedSpan() {
+			var count = 0
+			document.querySelectorAll('input[type=checkbox]').forEach(
+					function(node) {
+						if (node.checked) {
+							count++
+						}
+					})
+			return count
+		}
+
+			var queue = $('#queueTypeId').find(":selected").val();
+			if (queue != 6) {
+				$('#exitPoint').hide();
+				$('#maxTrxOnBatch').hide();
+			}
+
+			if ($('form').attr('action').includes('update')) {
+				$('form #name').prop('readonly', true);
+				//$('form input[name="name"]').prop( 'border','0px');
+
+				var optionVal = $('#queueTypeId').find(":selected").val();
+				var optionText = $('#queueTypeId').find(":selected").text();
+				var input = $('<input type="hidden" id="queueTypeId" name="queueTypeId" value="'+optionVal+'"/>');
+
+				// 				$("#queueTypeId").empty();
+				$("#queueType").append(input);
+				$('#queueTypeId').attr('disabled', true)
+				if (queue == 6) {
+					$('#exitPoint').show();
+					$('#maxTrxOnBatch').show();
+				} else {
+					$('#exitPoint').hide();
+					$('#maxTrxOnBatch').hide();
+				}
+			}
+
+			if ($('form').attr('action').includes('insert')) {
+				$("input#name").on('keyup change', function() {
+					var name = $('#name').val();
+					$('input[name="label"]').val(name);
+
+				});
+				$('#exitPoint').hide();
+				$('#maxTrxOnBatch').hide();
+			}
+			$("select#queueTypeId").on('keyup change', function() {
+				var queueTypeId = $('#queueTypeId').find(":selected").text();
+				if (queueTypeId == "Authorization" || queueTypeId == "6") {
+					$('#exitPoint').show();
+					$('#maxTrxOnBatch').show();
+				} else {
+					$('#exitPoint').hide();
+					$('#maxTrxOnBatch').hide();
+				}
+
+			});
+
+			$("#queueDestinations").multiselect()
+			
+			$("#queueType").change(function() {
+				changeQueueType($("#queueType :selected").val());
+			})
+			function changeQueueType(queueType) {
+				$("#rowQueueDestinations").css("display",
+						queueType == 1 ? "" : "none")
+			}
+			changeQueueType(queue);
+		</script>
+	</form>
+
+</body>
+</html>
